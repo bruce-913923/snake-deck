@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>貪吃蛇簡報 SNAKE DECK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b140b;
+    --grid-line: rgba(84, 214, 84, 0.08);
+    --snake: #4ade4a;
+    --snake-dark: #237a23;
+    --fruit: #ff5252;
+    --text: #d7ffd7;
+    --dim: #6faf6f;
+    --lcd: #9db93f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 32px 32px;
+    color: var(--text);
+    font-family: "Press Start 2P", "Courier New", monospace;
+    overflow: hidden;
+    cursor: crosshair;
+  }
+
+  /* ── 遊戲畫布：鋪滿全螢幕，蛇在最底層亂跑 ── */
+  #game { position: fixed; inset: 0; z-index: 0; }
+
+  /* ── 進入遊戲模式的綠色閃光轉場 ── */
+  #flash {
+    position: fixed;
+    inset: 0;
+    z-index: 4;
+    background: var(--lcd);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.45s ease;
+  }
+  #flash.on { opacity: 1; }
+
+  /* ── 投影片區（浮在蛇上面）── */
+  main { position: relative; z-index: 1; flex: 1; }
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 24px;
+    padding: 30px;
+    text-align: center;
+    pointer-events: none; /* 讓點擊穿透到畫布 */
+  }
+  .slide.active { display: flex; }
+  .slide.entering { animation: bite-in 0.45s steps(8); }
+  @keyframes bite-in {
+    from { clip-path: inset(0 100% 0 0); }
+    to   { clip-path: inset(0 0 0 0); }
+  }
+  .slide h1 { font-size: 28px; line-height: 1.6; color: var(--snake); text-shadow: 0 0 14px rgba(74,222,74,.7), 0 0 4px #000; }
+  .slide h2 { font-size: 18px; line-height: 1.6; color: var(--snake); text-shadow: 0 0 10px rgba(74,222,74,.6), 0 0 4px #000; }
+  .slide p  { font-size: 12px; line-height: 2.2; color: var(--text); max-width: 660px; text-shadow: 0 0 6px #000, 0 0 12px #000; }
+  .slide .dim { color: var(--dim); font-size: 10px; }
+  .slide code {
+    font-family: inherit;
+    color: var(--fruit);
+    background: rgba(20, 8, 8, 0.75);
+    padding: 2px 6px;
+    border: 1px solid rgba(255, 82, 82, 0.35);
+  }
+  .slide .stage { font-size: 9px; color: var(--fruit); letter-spacing: 3px; text-shadow: 0 0 6px rgba(255,82,82,.5); }
+  .slide .cols { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+  .slide .col {
+    min-width: 190px;
+    max-width: 250px;
+    padding: 20px 16px;
+    border: 3px solid var(--snake-dark);
+    background: rgba(11, 20, 11, 0.85);
+  }
+  .slide .col h3 { font-size: 11px; color: var(--fruit); margin-bottom: 14px; }
+  .slide .col p { font-size: 10px; line-height: 2; text-shadow: none; }
+  .slide .big { font-size: 30px; color: var(--snake); text-shadow: 0 0 14px rgba(74,222,74,.7); margin-bottom: 10px; }
+  .slide .quote { font-size: 15px; line-height: 2.4; max-width: 560px; }
+
+  /* ── 結訓報告版型 ── */
+  .slide.left { align-items: flex-start; justify-content: flex-start; text-align: left; padding: 56px 7vw 50px; gap: 16px; }
+  .slide.left h2 { width: 100%; font-size: 19px; border-bottom: 2px solid var(--snake-dark); padding-bottom: 12px; }
+  .slide .cmd { font-size: 13px; color: var(--snake); line-height: 2; max-width: none; text-shadow: 0 0 8px rgba(74,222,74,.5), 0 0 4px #000; }
+  .slide .tsub { font-size: 12px; color: var(--dim); line-height: 2.1; max-width: none; }
+  .k { color: var(--snake); }
+  .blink { animation: blink 1.1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .slide .mega { font-size: 62px; font-weight: 700; letter-spacing: 12px; color: var(--snake); text-shadow: 0 0 26px rgba(74,222,74,.8), 0 0 4px #000; }
+  .slide .tl { position: absolute; top: 48px; left: 7vw; text-align: left; }
+  .slide .br { position: absolute; bottom: 48px; right: 7vw; text-align: right; }
+  .term { width: min(660px, 86vw); border: 2px solid var(--snake-dark); background: rgba(4, 12, 4, 0.88); box-shadow: 0 0 16px rgba(74, 222, 74, 0.15); }
+  .term .tbar { background: var(--snake-dark); color: #0b140b; font-size: 9px; padding: 4px 10px; text-align: right; letter-spacing: 3px; }
+  .term .tbody { padding: 13px 18px; font-size: 12.5px; line-height: 2.15; }
+  .flow { align-self: center; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; margin-top: 4px; }
+  .iobox { border: 2px solid var(--snake-dark); background: rgba(4, 12, 4, 0.8); padding: 12px 28px; font-size: 13px; line-height: 2.1; }
+  .corebox { border: 3px solid var(--snake); box-shadow: 0 0 20px rgba(74, 222, 74, 0.45); }
+  .lbl { color: var(--snake); letter-spacing: 2px; font-size: 11px; margin-bottom: 4px; }
+  .hl { background: #06280e; color: var(--snake); padding: 1px 5px; }
+  .slide .arrow { color: var(--snake); font-size: 13px; text-shadow: 0 0 8px rgba(74,222,74,.5); }
+  .row2 { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; width: 100%; }
+  .colstack { display: flex; flex-direction: column; gap: 16px; flex: 1 1 400px; min-width: 340px; }
+  .colstack .term { width: 100%; }
+  .photo { flex: 1 1 300px; max-width: 440px; border: 3px solid var(--snake); box-shadow: 0 0 24px rgba(74, 222, 74, 0.35); }
+  .photo img { display: block; width: 100%; }
+  .steps { display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; flex: 1 1 360px; }
+  .stepbox { border: 2px solid var(--snake); background: rgba(4, 12, 4, 0.8); padding: 10px 24px; font-size: 13px; line-height: 2; width: 100%; max-width: 360px; }
+  .slide .steplink { color: #fff; font-size: 11px; text-shadow: 0 0 6px #000; }
+  .cols.green { align-self: center; }
+  .cols.green h3 { color: var(--snake); }
+  .col.db { text-align: center; min-width: 260px; }
+  .dbicon { font-size: 46px; margin: 8px 0 2px; }
+
+  /* ── 滿版簡報板：以 1280×720 設計、依視窗等比縮放（像投影片）── */
+  .board {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 1280px;
+    height: 720px;
+    transform: translate(-50%, -50%) scale(var(--ds, 1));
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 52px 72px;
+    gap: 20px;
+  }
+  .board.center { align-items: center; justify-content: center; text-align: center; }
+  .board h2 { width: 100%; font-size: 30px; border-bottom: 2px solid var(--snake-dark); padding-bottom: 14px; }
+  .board .cmd { font-size: 20px; max-width: none; }
+  .board .tsub { font-size: 17px; max-width: none; }
+  .board .mega { font-size: 110px; letter-spacing: 22px; }
+  .board .tl { top: 44px; left: 64px; }
+  .board .br { bottom: 44px; right: 64px; }
+  .duo { display: flex; align-items: center; gap: 56px; flex: 1; width: 100%; min-height: 0; }
+  .stack { display: flex; flex-direction: column; gap: 22px; flex: 1; }
+  .board .term { width: 100%; }
+  .board .term .tbar { font-size: 13px; padding: 5px 12px; }
+  .board .term .tbody { font-size: 19px; line-height: 2; padding: 18px 24px; }
+  .art { width: 400px; max-height: 520px; object-fit: contain; filter: drop-shadow(0 0 18px rgba(74, 222, 74, 0.35)); }
+  .board .flow { gap: 16px; margin-top: 10px; width: 100%; }
+  .board .iobox { font-size: 21px; line-height: 2; padding: 16px 40px; }
+  .board .lbl { font-size: 16px; letter-spacing: 3px; margin-bottom: 6px; }
+  .board .arrow { font-size: 19px; }
+  .board .photo { flex: 0 0 470px; max-width: 470px; }
+  .board .steps { flex: 1; gap: 10px; }
+  .board .stepbox { font-size: 20px; line-height: 1.9; max-width: 460px; padding: 12px 30px; }
+  .board .steplink { font-size: 16px; }
+  .board .cols { align-self: center; gap: 34px; flex: 1; align-items: center; flex-wrap: nowrap; }
+  .board .col { max-width: 356px; min-width: 320px; padding: 26px 24px; }
+  .board .col h3 { font-size: 19px; margin-bottom: 16px; }
+  .board .col p { font-size: 15.5px; line-height: 2.05; }
+  .board .dbicon { width: 150px; margin: 12px auto 4px; display: block; filter: drop-shadow(0 0 14px rgba(74, 222, 74, 0.4)); }
+
+  /* ── 開場過場動畫：滿版全螢幕 ── */
+  #cut {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+  }
+  #caption {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 48px;
+    z-index: 1;
+    text-align: center;
+    font-size: 13px;
+    color: #fff;
+    line-height: 1.9;
+    text-shadow: 0 2px 6px #000, 0 0 14px #000;
+    pointer-events: none;
+  }
+  .hidden { display: none !important; }
+  /* 吃到果實的 +1 提示 */
+  .pop {
+    position: fixed;
+    z-index: 3;
+    color: var(--fruit);
+    font-size: 12px;
+    pointer-events: none;
+    animation: pop-up 0.7s ease-out forwards;
+    text-shadow: 0 0 8px rgba(255, 82, 82, 0.8);
+  }
+  @keyframes pop-up {
+    from { transform: translateY(0); opacity: 1; }
+    to   { transform: translateY(-40px); opacity: 0; }
+  }
+
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+<canvas id="cut"></canvas>
+<p id="caption"></p>
+<div id="flash"></div>
+
+<main>
+  <!-- ══ 起始頁：滿版開場動畫（播完直接進入貪吃蛇模式）══ -->
+  <section class="slide active"></section>
+
+  <!-- ══ P1：標題頁 ══ -->
+  <section class="slide">
+    <div class="board center">
+      <p class="tsub tl">&gt;_ SYSTEM.BOOT();<br>&gt;_ LOADING GROUP_02_DATA...<br>&gt;_ INITIALIZING REPORT...</p>
+      <h1 class="mega">結訓報告</h1>
+      <p class="cmd">### 第二組 主題：[ 敏捷力 ]</p>
+      <p class="tsub br">STATUS: READY<br>PRESS ANY KEY TO CONTINUE <span class="blink">_</span></p>
+    </div>
+  </section>
+
+  <!-- ══ P2：組員介紹（開發與數據）══ -->
+  <section class="slide">
+    <div class="board">
+      <h2>1. 簡單介紹組員</h2>
+      <p class="cmd">&gt;_ [ 載入系統開發與數據分析模組 ]</p>
+      <div class="duo">
+        <div class="stack">
+          <div class="term"><div class="tbar">─ □ ×</div><div class="tbody">
+            <span class="k">ID:</span> 廖睿辰<br>
+            <span class="k">TAG:</span> [ 數據暨人工智慧發展部 客戶智能科 ]<br>
+            <span class="k">TASK:</span> AI agent 建置 / 訓練機器學習模型
+          </div></div>
+          <div class="term"><div class="tbar">─ □ ×</div><div class="tbody">
+            <span class="k">ID:</span> 賴約翰<br>
+            <span class="k">TAG:</span> [ 行銷資訊部 台中軟體開發科 ]<br>
+            <span class="k">TASK:</span> 開發專案派件與維護
+          </div></div>
+          <div class="term"><div class="tbar">─ □ ×</div><div class="tbody">
+            <span class="k">ID:</span> 陳志鴻<br>
+            <span class="k">TAG:</span> [ 資訊策略發展部 資訊科技發展科 ]<br>
+            <span class="k">TASK:</span> 運用 AI 進行開發並把 AI 開發流程推廣給其他部門
+          </div></div>
+        </div>
+        <img class="art" src="art1.png" alt="">
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ P3：組員介紹（專案與業務）══ -->
+  <section class="slide">
+    <div class="board">
+      <h2>1. 簡單介紹組員</h2>
+      <p class="cmd">&gt;_ [ 載入專案管理與業務溝通模組 ]</p>
+      <div class="duo">
+        <div class="stack">
+          <div class="term"><div class="tbar">─ □ ×</div><div class="tbody">
+            <span class="k">ID:</span> 呂喬盈<br>
+            <span class="k">TAG:</span> [ 專案投資部 ]<br>
+            <span class="k">TASK:</span> 國內公共/基礎建設評估 /<br>私募基金管理 / 未上市櫃企業投後管理
+          </div></div>
+          <div class="term"><div class="tbar">─ □ ×</div><div class="tbody">
+            <span class="k">ID:</span> 陳怡靜<br>
+            <span class="k">TAG:</span> [ 理賠部 多元理賠科 ]<br>
+            <span class="k">TASK:</span> 分析病歷 / 案件處理與高頻人際溝通
+          </div></div>
+        </div>
+        <img class="art" src="art2.png" alt="">
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ P4：敏捷力是什麼（演算法流程圖）══ -->
+  <section class="slide">
+    <div class="board">
+      <h2>2. 四天受訓過程中，小組怎麼樣展現這項職能</h2>
+      <p class="cmd">&gt;_ QUERY: 敏捷力是什麼?</p>
+      <div class="flow">
+        <div class="iobox"><div class="lbl">[ 輸入條件 INPUT ]</div>⚠ 情境不明　│　⚠ 需求快速變動　│　⚠ 資訊不完整</div>
+        <p class="arrow">↓ (EXECUTE AGILITY_ALGORITHM)</p>
+        <div class="iobox corebox"><div class="lbl">[ 核心能力 PROCESSING ]</div>1. <span class="hl">[快速理解]</span> 問題　2. <span class="hl">[持續學習]</span> 新知　3. <span class="hl">[靈活調整]</span> 策略</div>
+        <p class="arrow">↓</p>
+        <div class="iobox"><div class="lbl">[ 輸出結果 OUTPUT ]</div>🎯 採取適當行動以達成目標</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ P5：實戰任務測試（任務 A / B + 照片）══ -->
+  <section class="slide">
+    <div class="board">
+      <h2>2. 四天受訓過程中，小組怎麼樣展現這項職能</h2>
+      <p class="cmd">&gt;_ EXECUTE: 實戰任務測試<span class="blink">▌</span></p>
+      <div class="duo">
+        <div class="stack">
+          <div class="term"><div class="tbar">─ □ ×</div><div class="tbody">
+            <span class="k">[ 任務 A：機器人製作 ]</span><br>
+            <span class="k">ACTION:</span> 先寫好一版「簡單移動與發射功能」<br>
+            <span class="k">RESULT:</span> 快速實測攻擊能力，大幅加快進度（MVP 測試）
+          </div></div>
+          <div class="term"><div class="tbar">─ □ ×</div><div class="tbody">
+            <span class="k">[ 任務 B：收銀機任務 ]</span><br>
+            <span class="k">CONTEXT:</span> 遊戲規則與資訊非常不足<br>
+            <span class="k">ROUND_1:</span> 選擇「不行動」，優先紀錄數字分布狀態<br>
+            <span class="k">ROUND_2:</span> 根據分布數據，精準分配每人的目標數字<br>
+            <span class="k">RESULT:</span> 短時間內得到好成績，展現敏捷力
+          </div></div>
+        </div>
+        <div class="photo"><img src="photo1.png" alt="實戰任務照片"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ P6：團隊協作與收斂（任務 C + 照片）══ -->
+  <section class="slide">
+    <div class="board">
+      <h2>2. 四天受訓過程中，小組怎麼樣展現這項職能</h2>
+      <p class="cmd">&gt;_ EXECUTE: 團隊協作與收斂</p>
+      <div class="duo">
+        <div class="steps">
+          <p class="cmd">[ 任務 C：小組報告討論 ]</p>
+          <div class="stepbox"><span class="k">[ Step 1: 產生需求 ]</span><br>快速建立大略框架</div>
+          <p class="steplink">&gt;&gt;&gt; 敏捷對齊 &gt;&gt;&gt;</p>
+          <div class="stepbox"><span class="k">[ Step 2: 想法碰撞 ]</span><br>收集不同觀點</div>
+          <p class="steplink">&gt;&gt;&gt; 動態修正 &gt;&gt;&gt;</p>
+          <div class="stepbox"><span class="k">[ Step 3: 細節調整 ]</span><br>根據回饋迭代最佳版本</div>
+        </div>
+        <div class="photo"><img src="photo2.png" alt="小組討論照片"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ P7：未來應用（三張 PATCH 卡）══ -->
+  <section class="slide">
+    <div class="board">
+    <h2>3. 未來在工作中會如何深化這項職能的應用？</h2>
+    <p class="cmd">&gt;_ SYSTEM UPGRADE PLAN <span class="blink">_</span></p>
+    <div class="cols green">
+      <div class="col">
+        <h3>[ PATCH_1: 專案開發 ]</h3>
+        <p><span class="k">情境：</span>收到 BU 需求時<br><span class="k">敏捷行動：</span>快速製作 prototype 供測試<br><span class="k">效益：</span>有效獲取反饋，對齊產品面貌，大幅加速專案進程</p>
+      </div>
+      <div class="col">
+        <h3>[ PATCH_2: 部門協作 ]</h3>
+        <p><span class="k">情境：</span>跨部門合作發現理解不同時<br><span class="k">敏捷行動：</span>及時主動提問，理解雙方需求<br><span class="k">效益：</span>動態修改合作流程，確保專案順利推進</p>
+      </div>
+      <div class="col">
+        <h3>[ PATCH_3: 技術導入 ]</h3>
+        <p><span class="k">情境：</span>公司導入新 AI 產品時<br><span class="k">敏捷行動：</span>主動多測試 DC<br><span class="k">效益：</span>將新工具無縫融入現有流程，提升工作效率與品質</p>
+      </div>
+    </div>
+    </div>
+  </section>
+
+  <!-- ══ P8：學習資源（兩座資料庫）══ -->
+  <section class="slide">
+    <div class="board">
+      <h2>4. 分享組員參與過或使用過公司的學習資源</h2>
+      <p class="cmd">&gt;_ CONNECTING TO LEARNING DATABASES...</p>
+      <div class="cols green">
+        <div class="col db">
+          <div class="lbl">[ DATABASE 01 ]</div>
+          <img class="dbicon" src="db1.png" alt="">
+          <h3>### &gt; hahow</h3>
+          <p><span class="k">[ 狀態：已連線 ]</span><br>跨領域線上學習資源，<br>持續擴展團隊技能樹</p>
+        </div>
+        <div class="col db">
+          <div class="lbl">[ DATABASE 02 ]</div>
+          <img class="dbicon" src="db2.png" alt="">
+          <h3>### &gt; Hyread</h3>
+          <p><span class="k">[ 狀態：已連線 ]</span><br>企業數位圖書館，<br>提供豐富知識庫作為決策後盾</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ P9：結尾 ══ -->
+  <section class="slide">
+    <div class="board center">
+      <p class="cmd">&gt;_ REPORT COMPLETED.<br>&gt;_ AGILITY MODULE: ACTIVATED.</p>
+      <h1 class="mega">感謝聆聽</h1>
+      <p class="tsub br">LOGGING OFF...<span class="blink">_</span></p>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  // 防止腳本被重複注入執行（例如熱重載環境）
+  if (window.__snakeDeckStarted) return;
+  window.__snakeDeckStarted = true;
+
+  /* ══════════ 簡報狀態 ══════════ */
+  const slides = [...document.querySelectorAll(".slide")];
+  const flash = document.getElementById("flash");
+  let current = 0;
+  let mode = "intro";   // "intro"（開場動畫）↔ "game"（貪吃蛇簡報）
+
+  function showSlide(i) {
+    slides[current].classList.remove("active", "entering");
+    current = i;
+    slides[current].classList.add("active", "entering");
+  }
+
+  // 簡報板等比縮放：以 1280×720 設計稿為基準鋪滿視窗
+  function fitDeck() {
+    const s = Math.min(innerWidth / 1280, innerHeight / 720);
+    document.documentElement.style.setProperty("--ds", s);
+  }
+  fitDeck();
+  addEventListener("resize", fitDeck);
+
+  /* ══════════ 開場過場動畫（寫實背景 + 像素小人）══════════ */
+  const cut = document.getElementById("cut");
+  const cctx = cut.getContext("2d");
+  const captionEl = document.getElementById("caption");
+  let topLogical = 0; // 滿版時邏輯座標系的畫面頂端（由視窗高度換算，可為負值）
+  function resizeCut() {
+    cut.width = innerWidth;
+    cut.height = innerHeight;
+  }
+  resizeCut();
+  addEventListener("resize", resizeCut);
+  let cutsceneDone = false;
+  let entering = false;     // 綠閃轉場進行中
+  let cutLoopRunning = false;
+  let scene = 0;
+  let sceneStart = performance.now();
+  const SCENE_MS = [3000, 3200, 3200, 3600, 3000];
+  const CAPTIONS = [
+    "五個冒險者盯著眼前的大樹",
+    "坐在樹下吃國泰花生，歲月靜好",
+    "咚！不知道是什麼東西掉下來，砸倒了一個人！",
+    "大家跑過去一看——是一支 NOKIA 手機！",
+    "手機突然發出綠光，把大家吸了進去！",
+  ];
+
+  // ── 想換成真實圖片：把圖檔放在同資料夾，用這些檔名就會自動套用 ──
+  //    bg.png（整張場景底圖，會蓋掉程式畫的天空/地面/樹）
+  //    tree.png（國泰樹）、phone.png（Nokia 手機）、char1.png ~ char5.png（五個角色）
+  const IMGS = {};
+  ["bg", "tree", "phone", "char1", "char2", "char3", "char4", "char5"].forEach(n => {
+    const im = new Image();
+    im.onload = () => { IMGS[n] = im; };
+    im.src = n + ".png";
+  });
+
+  // 8-bit 小人（背影），楓之谷感的五套配色；S = 放大倍率
+  const S = 4;
+  const STAND = [
+    "..hhhh..",
+    ".hhhhhh.",
+    ".hhhhhh.",
+    ".hhhhhh.",
+    "..cccc..",
+    ".cccccc.",
+    ".cccccc.",
+    "..pppp..",
+    "..p..p..",
+    "..s..s..",
+  ];
+  const SIT = [
+    "..hhhh..",
+    ".hhhhhh.",
+    ".hhhhhh.",
+    ".hhhhhh.",
+    ".cccccc.",
+    ".cccccc.",
+    "spppppps",
+  ];
+  const CHARS = [
+    { h: "#2d2d2d", c: "#c34a4a" },
+    { h: "#7a4a1f", c: "#3b6fd4" },
+    { h: "#e8c94a", c: "#2f9e57" },
+    { h: "#a03636", c: "#8e5bb8" },
+    { h: "#3b6fd4", c: "#d98a3d" },
+  ];
+  // 野餐隊形（腳底中心座標＋縮放）：圍成一圈，前排靠近鏡頭比較大
+  const PICNIC = [
+    { x: 128, y: 246, s: 4 },    // 左後
+    { x: 352, y: 248, s: 4 },    // 右後
+    { x: 240, y: 252, s: 4.2 },  // 中間靠樹（被砸的那位）
+    { x: 160, y: 270, s: 5 },    // 左前
+    { x: 322, y: 272, s: 5 },    // 右前
+  ];
+  const charPal = ch => ({ h: ch.h, c: ch.c, p: "#22314b", s: "#181818" });
+
+  function drawMap(map, pal, x, y, s) {
+    for (let r = 0; r < map.length; r++) {
+      for (let c = 0; c < map[r].length; c++) {
+        const k = map[r][c];
+        if (k === ".") continue;
+        cctx.fillStyle = pal[k];
+        cctx.fillRect(x + c * s, y + r * s, s + 0.05, s + 0.05);
+      }
+    }
+  }
+
+  function drawChar(i, map, x, y, s = S) {
+    const im = IMGS["char" + (i + 1)];
+    if (im) {
+      // 依圖片比例縮放：高度對齊像素小人的高度，水平置中
+      const h = map.length * s;
+      const w = h * (im.width / im.height);
+      cctx.drawImage(im, x + (map[0].length * s - w) / 2, y, w, h);
+    } else {
+      drawMap(map, charPal(CHARS[i]), x, y, s);
+    }
+  }
+
+  // 以「腳底中心」為基準畫角色
+  function drawCharAt(i, map, footX, footY, s) {
+    drawChar(i, map, footX - map[0].length * s / 2, footY - map.length * s, s);
+  }
+
+  // 場景底圖：有 bg.png 就整張鋪滿（cover 裁切），否則用程式畫的天空+地面
+  function drawBackdrop(now) {
+    if (IMGS.bg) {
+      const im = IMGS.bg;
+      const rectH = 300 - topLogical; // 邏輯座標下的可視高度
+      const scale = Math.max(480 / im.width, rectH / im.height);
+      const w = im.width * scale, h = im.height * scale;
+      cctx.drawImage(im, (480 - w) / 2, 300 - h, w, h); // 底部貼齊、水平置中
+      return;
+    }
+    drawSky(now);
+    drawGround();
+  }
+
+  function drawSky(now) {
+    const g = cctx.createLinearGradient(0, topLogical, 0, 252);
+    g.addColorStop(0, "#081019");
+    g.addColorStop(0.75, "#0e2233");
+    g.addColorStop(1, "#173a52");
+    cctx.fillStyle = g;
+    cctx.fillRect(0, topLogical, 480, 252 - topLogical);
+    const stars = [[42,27],[102,48],[165,18],[276,12],[363,33],[429,57],[216,39],[456,15],[24,72]];
+    stars.forEach(([x, y], i) => {
+      const tw = 0.4 + 0.6 * Math.abs(Math.sin(now / 700 + i * 1.7));
+      cctx.fillStyle = `rgba(215,255,215,${tw})`;
+      cctx.fillRect(x, y, 2, 2);
+    });
+  }
+
+  function drawGround() {
+    const g = cctx.createLinearGradient(0, 248, 0, 300);
+    g.addColorStop(0, "#1c5c2d");
+    g.addColorStop(1, "#0c3018");
+    cctx.fillStyle = g;
+    cctx.fillRect(0, 252, 480, 48);
+    cctx.strokeStyle = "#2a7a3c";
+    cctx.lineWidth = 2;
+    [22, 68, 130, 196, 255, 308, 370, 428, 460].forEach((x, i) => {
+      cctx.beginPath();
+      cctx.moveTo(x, 262 + (i % 3) * 8);
+      cctx.lineTo(x + 3, 254 + (i % 3) * 8);
+      cctx.stroke();
+    });
+  }
+
+  // 國泰樹（寫實漸層版）：雲朵狀樹冠 + 斜向淺綠高光帶 + 雙腳樹幹 + 底座
+  const TREE_BLOBS = [[240,110,88],[165,140,55],[315,140,55],[185,72,50],[295,72,50],[240,52,46],[140,168,34],[340,168,34]];
+  function canopyPath() {
+    cctx.beginPath();
+    TREE_BLOBS.forEach(([x, y, r]) => { cctx.moveTo(x + r, y); cctx.arc(x, y, r, 0, Math.PI * 2); });
+  }
+  function drawTree(now) {
+    if (IMGS.bg) return; // 底圖裡已經有樹了
+    // 樹蔭
+    cctx.fillStyle = "rgba(0,0,0,0.22)";
+    cctx.beginPath(); cctx.ellipse(240, 256, 128, 9, 0, 0, Math.PI * 2); cctx.fill();
+    if (IMGS.tree) {
+      // 依圖片比例縮放：寬 300、底部貼齊地面
+      const w = 300, h = w * IMGS.tree.height / IMGS.tree.width;
+      cctx.drawImage(IMGS.tree, 240 - w / 2, 252 - h, w, h);
+      return;
+    }
+    cctx.save();
+    cctx.translate(Math.sin(now / 1100) * 2, 0);
+    const g = cctx.createLinearGradient(0, 10, 0, 200);
+    g.addColorStop(0, "#25a04a");
+    g.addColorStop(1, "#0b7031");
+    cctx.fillStyle = g;
+    canopyPath(); cctx.fill();
+    // 左上斜向高光帶（logo 的淺綠掃過感）
+    cctx.save();
+    canopyPath(); cctx.clip();
+    const hi = cctx.createLinearGradient(110, 30, 330, 190);
+    hi.addColorStop(0, "#93d24f");
+    hi.addColorStop(0.45, "#4cb84e");
+    hi.addColorStop(1, "rgba(76,184,78,0)");
+    cctx.fillStyle = hi;
+    cctx.beginPath();
+    cctx.ellipse(215, 75, 160, 85, -0.28, 0, Math.PI * 2);
+    cctx.fill();
+    cctx.restore();
+    // 樹幹：中柱 + 八字腳 + 底座
+    cctx.fillStyle = "#0b7031";
+    cctx.beginPath();
+    cctx.moveTo(221, 175); cctx.lineTo(259, 175);
+    cctx.lineTo(253, 228); cctx.lineTo(227, 228);
+    cctx.closePath(); cctx.fill();
+    cctx.lineWidth = 17;
+    cctx.strokeStyle = "#0b7031";
+    cctx.beginPath(); cctx.moveTo(233, 222); cctx.lineTo(203, 247); cctx.stroke();
+    cctx.beginPath(); cctx.moveTo(247, 222); cctx.lineTo(277, 247); cctx.stroke();
+    cctx.beginPath(); cctx.roundRect(178, 245, 124, 9, 4); cctx.fill();
+    cctx.restore();
+  }
+
+  function drawPeanuts(x, y) {
+    cctx.fillStyle = "#cf9a52";
+    [[0, 0], [10, 3], [5, -4], [16, -1]].forEach(([dx, dy]) => {
+      cctx.beginPath();
+      cctx.ellipse(x + dx, y + dy, 5, 3.5, 0.5, 0, Math.PI * 2);
+      cctx.fill();
+    });
+    cctx.fillStyle = "#b7813d";
+    [[3, 0], [13, 2]].forEach(([dx, dy]) => cctx.fillRect(x + dx, y + dy, 2, 2));
+  }
+
+  // 掉下來的神秘物體（黑色剪影，還看不出是手機）
+  function drawFallingObject(x, y, rot) {
+    cctx.save();
+    cctx.translate(x, y);
+    cctx.rotate(rot);
+    cctx.fillStyle = "#10151c";
+    cctx.beginPath(); cctx.roundRect(-8, -14, 16, 28, 5); cctx.fill();
+    cctx.restore();
+  }
+
+  // 寫實版 Nokia 3310 特寫
+  function drawNokia(now, glow) {
+    cctx.fillStyle = "rgba(0,0,0,0.35)";
+    cctx.beginPath(); cctx.ellipse(240, 266, 82, 12, 0, 0, Math.PI * 2); cctx.fill();
+    if (IMGS.phone) {
+      cctx.drawImage(IMGS.phone, 165, 40, 150, 225);
+    } else {
+      // 機身
+      const body = cctx.createLinearGradient(178, 0, 302, 0);
+      body.addColorStop(0, "#2c3947");
+      body.addColorStop(0.5, "#51637a");
+      body.addColorStop(1, "#242f3b");
+      cctx.fillStyle = body;
+      cctx.beginPath(); cctx.roundRect(178, 42, 124, 222, 36); cctx.fill();
+      // 銀色面板
+      const face = cctx.createLinearGradient(188, 0, 292, 0);
+      face.addColorStop(0, "#aeb9c6");
+      face.addColorStop(0.5, "#dfe6ee");
+      face.addColorStop(1, "#97a3b1");
+      cctx.fillStyle = face;
+      cctx.beginPath(); cctx.roundRect(188, 58, 104, 122, 22); cctx.fill();
+      // 聽筒
+      cctx.fillStyle = "#3a4653";
+      [222, 234, 246].forEach(x => cctx.fillRect(x, 66, 8, 3));
+      // 品牌字
+      cctx.fillStyle = "#33404e";
+      cctx.font = "bold 15px Arial, sans-serif";
+      cctx.textAlign = "center";
+      cctx.fillText("NOKIA", 240, 88);
+      // 螢幕
+      cctx.fillStyle = "#1a222c";
+      cctx.beginPath(); cctx.roundRect(198, 96, 84, 66, 8); cctx.fill();
+      let sg;
+      if (glow) {
+        sg = cctx.createRadialGradient(240, 128, 4, 240, 128, 60);
+        sg.addColorStop(0, "#eaffb0");
+        sg.addColorStop(1, "#9dd44a");
+      } else {
+        sg = cctx.createLinearGradient(0, 100, 0, 158);
+        sg.addColorStop(0, "#93a848");
+        sg.addColorStop(1, "#aabf5c");
+      }
+      cctx.fillStyle = sg;
+      cctx.beginPath(); cctx.roundRect(202, 100, 76, 58, 6); cctx.fill();
+      if (!glow) { // 螢幕掃過的反光
+        const gx = (now / 20) % 140 - 30;
+        cctx.save();
+        cctx.beginPath(); cctx.roundRect(202, 100, 76, 58, 6); cctx.clip();
+        cctx.fillStyle = "rgba(255,255,255,0.30)";
+        cctx.beginPath();
+        cctx.moveTo(202 + gx, 158); cctx.lineTo(202 + gx + 26, 100);
+        cctx.lineTo(202 + gx + 38, 100); cctx.lineTo(202 + gx + 12, 158);
+        cctx.closePath(); cctx.fill();
+        cctx.restore();
+      }
+      // 導航鍵與按鍵
+      cctx.fillStyle = "#c9d2dc";
+      cctx.beginPath(); cctx.roundRect(212, 186, 56, 16, 9); cctx.fill();
+      cctx.fillStyle = "#bcc7d3";
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) {
+        cctx.beginPath(); cctx.roundRect(196 + c * 32, 210 + r * 14, 26, 10, 5); cctx.fill();
+      }
+    }
+    if (glow) { // 螢幕向外的綠光暈
+      const halo = cctx.createRadialGradient(240, 128, 10, 240, 128, 130);
+      halo.addColorStop(0, "rgba(170,230,90,0.55)");
+      halo.addColorStop(1, "rgba(170,230,90,0)");
+      cctx.fillStyle = halo;
+      cctx.fillRect(110, Math.min(0, topLogical), 260, 262 - Math.min(0, topLogical));
+    }
+  }
+
+  function mark(ch, x, y, color) {
+    cctx.fillStyle = color;
+    cctx.font = '16px "Press Start 2P", monospace';
+    cctx.textAlign = "center";
+    cctx.fillText(ch, x, y);
+  }
+
+  function renderScene(t, now) {
+    // 滿版：寬度對齊 480 邏輯寬、底部貼齊邏輯 y=300（草地永遠在畫面底部）
+    cctx.setTransform(1, 0, 0, 1, 0, 0);
+    cctx.clearRect(0, 0, cut.width, cut.height);
+    const ss = cut.width / 480;
+    topLogical = 300 - cut.height / ss;
+    cctx.setTransform(ss, 0, 0, ss, 0, cut.height - 300 * ss);
+    if (scene === 2 && t > 600 && t < 1000) { // 砸到瞬間的震動
+      cctx.translate(Math.random() * 4 - 2, Math.random() * 4 - 2);
+    }
+    drawBackdrop(now);
+
+    if (scene === 0) {
+      // 第一幕：野餐隊形站在草地上看樹
+      drawTree(now);
+      PICNIC.forEach((p, i) => {
+        const bob = Math.round(Math.sin(now / 300 + i * 1.3)) * 2;
+        drawCharAt(i, STAND, p.x, p.y + bob, p.s);
+      });
+    } else if (scene === 1) {
+      // 第二幕：圍圈坐下吃花生
+      drawTree(now);
+      drawPeanuts(226, 262);
+      drawPeanuts(252, 270); // 圈中間的花生堆
+      PICNIC.forEach((p, i) => {
+        const munch = Math.sin(now / 130 + i) > 0 ? 2 : 0;
+        drawCharAt(i, STAND, p.x, p.y + munch, p.s); // 人留在原地、大小不變
+      });
+    } else if (scene === 2) {
+      // 第三幕：牛頓時刻——神秘物體砸倒中間的人
+      drawTree(now);
+      const victim = PICNIC[2];
+      const p = Math.min(1, t / 600);
+      if (p < 1) drawFallingObject(246, 40 + p * p * 200, t / 90);
+      else drawFallingObject(272, victim.y - 4, 1.35); // 彈落在旁邊的草地上
+      if (t > 600 && t < 950) { // 落地衝擊圈
+        const q = (t - 600) / 350;
+        cctx.strokeStyle = `rgba(255,255,255,${1 - q})`;
+        cctx.lineWidth = 3;
+        cctx.beginPath(); cctx.arc(252, victim.y - 8, 8 + q * 30, 0, Math.PI * 2); cctx.stroke();
+      }
+      // 被砸倒的中間角色
+      const fall = Math.min(1, Math.max(0, (t - 600) / 400));
+      cctx.save();
+      cctx.translate(victim.x, victim.y);
+      cctx.rotate(fall * Math.PI / 2);
+      drawChar(2, STAND, -8 * victim.s / 2, -10 * victim.s, victim.s);
+      cctx.restore();
+      if (fall >= 1) { // 頭昏小星星
+        cctx.fillStyle = "#ffd94a";
+        for (let k = 0; k < 3; k++) {
+          const a = now / 250 + k * 2.1;
+          cctx.fillRect(258 + Math.cos(a) * 20, victim.y - 24 + Math.sin(a) * 8, 4, 4);
+        }
+      }
+      // 其他人嚇一跳：先「!」再「?」
+      [0, 1, 3, 4].forEach(i => {
+        const p2 = PICNIC[i];
+        const jump = t > 600 ? -Math.abs(Math.sin((t - 600) / 160 + i)) * 6 : 0;
+        drawCharAt(i, STAND, p2.x, p2.y + jump, p2.s);
+        if (t > 650 && Math.floor(t / 240) % 2 === 0) {
+          const wonder = t > 1800;
+          mark(wonder ? "?" : "!", p2.x, p2.y - 10 * p2.s - 8 + jump, wonder ? "#ffffff" : "#ff5252");
+        }
+      });
+    } else if (scene === 3) {
+      // 第四幕：大家跑過去圍觀 → 特寫揭曉是 Nokia
+      if (t < 1700) {
+        drawTree(now);
+        drawFallingObject(272, PICNIC[2].y - 4, 1.35);
+        const p = Math.min(1, t / 1300);
+        const e = p * (2 - p);
+        const targets = [[206, 254], [236, 262], [304, 258], [326, 266]];
+        [0, 1, 3, 4].forEach((ci, k) => {
+          const st = PICNIC[ci];
+          const x = st.x + (targets[k][0] - st.x) * e;
+          const y = st.y + (targets[k][1] - st.y) * e;
+          const run = p < 1 ? Math.abs(Math.sin(now / 90 + k)) * 5 : 0;
+          drawCharAt(ci, STAND, x, y - run, st.s);
+        });
+        drawCharAt(2, STAND, PICNIC[2].x, PICNIC[2].y, PICNIC[2].s); // 被砸的人爬起來
+        if (Math.floor(t / 400) % 2) mark("?", 290, 200, "#ffffff");
+      } else {
+        drawNokia(now, false);
+      }
+    } else {
+      // 第五幕：綠光把大家吸進螢幕
+      drawNokia(now, true);
+      for (let k = 0; k < 3; k++) {
+        const r = (t * 0.13 + k * 44) % 132;
+        cctx.strokeStyle = `rgba(150,235,120,${Math.max(0, 1 - r / 132)})`;
+        cctx.lineWidth = 3;
+        cctx.beginPath(); cctx.arc(240, 128, 20 + r, 0, Math.PI * 2); cctx.stroke();
+      }
+      const starts = [[206, 254], [236, 262], [304, 258], [326, 266], [234, 258]];
+      starts.forEach(([sx, sy], i) => {
+        const p = Math.min(1, Math.max(0, (t - i * 200) / 900));
+        if (p >= 1) return;
+        const e = p * p;
+        const x = sx + (240 - sx) * e + Math.sin(now / 70 + i) * 8 * (1 - p);
+        const y = sy + (135 - sy) * e;
+        drawCharAt(i, STAND, x, y, 4 * (1 - 0.85 * p));
+      });
+      if (t > 2100) { // 收尾綠閃
+        cctx.fillStyle = `rgba(170,215,90,${Math.min(1, (t - 2100) / 500)})`;
+        cctx.fillRect(0, topLogical, 480, 300 - topLogical);
+      }
+    }
+    cctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+
+  function nextScene() {
+    if (cutsceneDone) return;
+    if (scene >= 4) return endCutscene();
+    scene++;
+    sceneStart = performance.now();
+    captionEl.textContent = CAPTIONS[scene];
+  }
+
+  function prevScene() {
+    if (cutsceneDone || scene === 0) return;
+    scene--;
+    sceneStart = performance.now();
+    captionEl.textContent = CAPTIONS[scene];
+  }
+
+  // 動畫播完：綠光一閃，直接進入貪吃蛇模式
+  function endCutscene() {
+    if (entering) return;
+    entering = true;
+    cutsceneDone = true;
+    flash.classList.add("on");
+    setTimeout(() => {
+      mode = "game";
+      cut.classList.add("hidden");
+      captionEl.classList.add("hidden");
+      showSlide(1);
+      flash.classList.remove("on");
+      entering = false;
+    }, 500);
+  }
+
+  function cutLoop(now) {
+    if (cutsceneDone) { cutLoopRunning = false; return; }
+    if (now - sceneStart > SCENE_MS[scene]) nextScene();
+    if (cutsceneDone) { cutLoopRunning = false; return; }
+    renderScene(now - sceneStart, now);
+    requestAnimationFrame(cutLoop);
+  }
+
+  function startCutscene() {
+    cutsceneDone = false;
+    scene = 0;
+    sceneStart = performance.now();
+    captionEl.textContent = CAPTIONS[0];
+    cut.classList.remove("hidden");
+    captionEl.classList.remove("hidden");
+    if (!cutLoopRunning) {
+      cutLoopRunning = true;
+      requestAnimationFrame(cutLoop);
+    }
+  }
+  startCutscene();
+
+  /* ══════════ 全螢幕貪吃蛇 ══════════ */
+  const CELL = 32;
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  let cols, rows, topRows, bottomRows;
+
+  function resize() {
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+    cols = Math.max(4, Math.floor(innerWidth / CELL));
+    rows = Math.max(4, Math.floor(innerHeight / CELL));
+    // 果實不要生在太貼近上下邊緣的列
+    topRows = 1;
+    bottomRows = 1;
+  }
+  resize();
+  addEventListener("resize", resize);
+
+  let snake = [];
+  for (let i = 0; i < 3; i++) {
+    snake.push({ x: Math.floor(cols / 2) - i, y: Math.floor(rows / 2) });
+  }
+  let dir = { x: 1, y: 0 };
+  const GROW_PER_FRUIT = 3; // 每吃一顆果實長幾節
+  let fruit = null;      // 場上唯一的果實 {x, y}
+  let growPending = 0;   // 吃到果實後要長幾節
+  let effects = [];      // 吃果實的擴散圈特效
+
+  const nextCell = d => ({
+    x: (snake[0].x + d.x + cols) % cols,
+    y: (snake[0].y + d.y + rows) % rows,
+  });
+
+  // 這一格會不會撞到自己？（沒在成長時，尾巴這回合會空出來，不算）
+  function isBlocked(c) {
+    const occupied = growPending > 0 ? snake.length : snake.length - 1;
+    for (let i = 0; i < occupied; i++) {
+      if (snake[i].x === c.x && snake[i].y === c.y) return true;
+    }
+    return false;
+  }
+
+  // 挑方向：不回頭、不穿越自己；追果實時在安全方向中選最接近果實的
+  function chooseDir() {
+    const safe = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }]
+      .filter(d => !(d.x === -dir.x && d.y === -dir.y))
+      .filter(d => !isBlocked(nextCell(d)));
+    if (safe.length === 0) return dir; // 被自己完全包住（極罕見）：硬著頭皮直走
+
+    if (fruit) {
+      const h = snake[0];
+      const dx = fruit.x - h.x, dy = fruit.y - h.y;
+      const pref = [];
+      if (dx !== 0) pref.push({ x: Math.sign(dx), y: 0 });
+      if (dy !== 0) pref.push({ x: 0, y: Math.sign(dy) });
+      if (Math.abs(dy) > Math.abs(dx)) pref.reverse();
+      for (const p of pref) {
+        if (safe.some(s => s.x === p.x && s.y === p.y)) return p;
+      }
+      return safe[Math.floor(Math.random() * safe.length)];
+    }
+
+    // 亂逛：直走安全的話大多直走，偶爾（或不得不）轉彎
+    const straightSafe = safe.some(s => s.x === dir.x && s.y === dir.y);
+    if (straightSafe && Math.random() > 0.15) return dir;
+    return safe[Math.floor(Math.random() * safe.length)];
+  }
+
+  function tick() {
+    if (mode !== "game") return;
+    dir = chooseDir();
+    const head = nextCell(dir);
+    snake.unshift(head);
+    if (growPending > 0) growPending--;
+    else snake.pop();
+
+    if (fruit && head.x === fruit.x && head.y === fruit.y) eatFruit();
+  }
+
+  function eatFruit() {
+    const px = fruit.x * CELL + CELL / 2, py = fruit.y * CELL + CELL / 2;
+    effects.push({ x: px, y: py, start: performance.now() });
+    spawnPop(px, py);
+    fruit = null;
+    growPending += GROW_PER_FRUIT;
+    showSlide(current + 1);
+  }
+
+  // 追果實時跑快一點，亂逛時慢慢爬
+  (function loop() {
+    tick();
+    setTimeout(loop, fruit ? 60 : 110);
+  })();
+
+  /* ── 放果實 ── */
+  function placeFruit(cx, cy) {
+    if (fruit || current >= slides.length - 1) return;
+    cy = Math.min(Math.max(cy, topRows), rows - 1 - bottomRows);
+    cx = Math.min(Math.max(cx, 0), cols - 1);
+    fruit = { x: cx, y: cy };
+  }
+
+  function placeFruitRandom() {
+    const h = snake[0];
+    for (let i = 0; i < 50; i++) {
+      const cx = Math.floor(Math.random() * cols);
+      const cy = topRows + Math.floor(Math.random() * (rows - topRows - bottomRows));
+      if (Math.abs(cx - h.x) + Math.abs(cy - h.y) >= 6) return placeFruit(cx, cy);
+    }
+    placeFruit(Math.floor(cols / 2), Math.floor(rows / 2));
+  }
+
+  function goNext() {
+    if (mode === "intro") nextScene();
+    else placeFruitRandom();
+  }
+
+  function goPrev() {
+    if (current === 0 || entering) return;
+    fruit = null; // 取消還沒吃到的果實
+    const trim = Math.min(GROW_PER_FRUIT, snake.length - 3);
+    if (trim > 0) snake.splice(-trim);
+    showSlide(current - 1);
+    if (current === 0) { // 回到起始頁 → 重播開場動畫
+      mode = "intro";
+      startCutscene();
+    }
+  }
+
+  // 左鍵＝下一頁（動畫中快轉下一幕；簡報中放果實）
+  document.addEventListener("click", e => {
+    if (mode === "intro") return nextScene();
+    placeFruit(Math.floor(e.clientX / CELL), Math.floor(e.clientY / CELL));
+  });
+  // 右鍵＝上一頁（動畫中回上一幕；簡報中退回上一頁）
+  document.addEventListener("contextmenu", e => {
+    e.preventDefault();
+    if (mode === "intro") prevScene();
+    else goPrev();
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight" || e.key === " ") goNext();
+    else if (e.key === "ArrowLeft") goPrev();
+  });
+
+  function spawnPop(px, py) {
+    const pop = document.createElement("span");
+    pop.className = "pop";
+    pop.textContent = "+1";
+    pop.style.left = px + "px";
+    pop.style.top = (py - 24) + "px";
+    document.body.appendChild(pop);
+    setTimeout(() => pop.remove(), 700);
+  }
+
+  /* ── 繪圖 ── */
+  function draw(now) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (mode !== "game") { requestAnimationFrame(draw); return; }
+
+    // 果實：紅色果子 + 綠色葉梗，帶呼吸縮放
+    if (fruit) {
+      const px = fruit.x * CELL + CELL / 2, py = fruit.y * CELL + CELL / 2;
+      const s = 1 + 0.15 * Math.sin(now / 150);
+      ctx.save();
+      ctx.shadowColor = "rgba(255, 82, 82, 0.8)";
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = "#ff5252";
+      ctx.beginPath();
+      ctx.arc(px, py, 9 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#4ade4a";
+      ctx.fillRect(px - 2, py - 15 * s, 4, 7);
+      ctx.restore();
+    }
+
+    // 蛇身：頭在前，愈後面愈小、愈暗
+    ctx.save();
+    ctx.shadowColor = "rgba(74, 222, 74, 0.5)";
+    ctx.shadowBlur = 10;
+    for (let i = snake.length - 1; i >= 0; i--) {
+      const seg = snake[i];
+      const pad = i === 0 ? 2 : Math.min(6, 3 + i * 0.3);
+      const size = CELL - pad * 2;
+      const t = i / Math.max(1, snake.length - 1);
+      ctx.fillStyle = i === 0 ? "#5dee5d" : `rgb(${45 - 20 * t}, ${190 - 80 * t}, ${45 - 20 * t})`;
+      ctx.beginPath();
+      ctx.roundRect(seg.x * CELL + pad, seg.y * CELL + pad, size, size, 8);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // 蛇頭的眼睛：朝行進方向
+    const h = snake[0];
+    const hx = h.x * CELL + CELL / 2, hy = h.y * CELL + CELL / 2;
+    const fx = dir.x * 5, fy = dir.y * 5;         // 往前偏
+    const sx = dir.y * 5, sy = dir.x * 5;         // 往兩側偏
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.arc(hx + fx + sx, hy + fy + sy, 3.4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(hx + fx - sx, hy + fy - sy, 3.4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#111";
+    ctx.beginPath(); ctx.arc(hx + fx + sx + dir.x, hy + fy + sy + dir.y, 1.6, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(hx + fx - sx + dir.x, hy + fy - sy + dir.y, 1.6, 0, Math.PI * 2); ctx.fill();
+
+    // 吃到果實的擴散圈
+    effects = effects.filter(e => now - e.start < 450);
+    for (const e of effects) {
+      const p = (now - e.start) / 450;
+      ctx.strokeStyle = `rgba(255, 82, 82, ${1 - p})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, 10 + p * 34, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+
+  // STAGE 標籤自動編號（第 0 頁是起始頁，不算簡報頁）
+  slides.forEach((s, i) => {
+    const tag = s.querySelector(".stage");
+    if (tag && i > 0) tag.textContent = "STAGE " + i + " / " + (slides.length - 1);
+  });
+})();
+</script>
+
+</body>
+</html>
