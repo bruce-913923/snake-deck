@@ -882,7 +882,7 @@
     }
   }
 
-  // 預載入關卡：等圖片下載完（最多 4 秒）再開播，
+  // 預載入關卡：等所有圖片下載完才開播（不設時間上限），
   // 避免第一次載入時看到程式畫的後備版背景
   (function preloadThenStart() {
     let dots = 0;
@@ -898,10 +898,7 @@
     };
     drawLoading();
     const iv = setInterval(drawLoading, 350);
-    Promise.race([
-      Promise.all(imgPromises),
-      new Promise(r => setTimeout(r, 4000)),
-    ]).then(() => {
+    Promise.all(imgPromises).then(() => {
       clearInterval(iv);
       startCutscene();
     });
