@@ -449,11 +449,12 @@
   //    bg.png（整張場景底圖，會蓋掉程式畫的天空/地面/樹）
   //    tree.png（國泰樹）、phone.png（Nokia 手機）、char1.png ~ char5.png（五個角色）
   const IMGS = {};
-  ["bg", "tree", "phone", "char1", "char2", "char3", "char4", "char5"].forEach(n => {
+  const imgPromises = ["bg", "tree", "phone", "char1", "char2", "char3", "char4", "char5"].map(n => new Promise(done => {
     const im = new Image();
-    im.onload = () => { IMGS[n] = im; };
+    im.onload = () => { IMGS[n] = im; done(); };
+    im.onerror = done; // 缺圖就用程式畫的後備版
     im.src = n + ".png";
-  });
+  }));
 
   // 8-bit 小人（背影），楓之谷感的五套配色；S = 放大倍率
   const S = 4;
@@ -880,7 +881,31 @@
       requestAnimationFrame(cutLoop);
     }
   }
-  startCutscene();
+
+  // 預載入關卡：等圖片下載完（最多 4 秒）再開播，
+  // 避免第一次載入時看到程式畫的後備版背景
+  (function preloadThenStart() {
+    let dots = 0;
+    const drawLoading = () => {
+      cctx.setTransform(1, 0, 0, 1, 0, 0);
+      cctx.fillStyle = "#0b140b";
+      cctx.fillRect(0, 0, cut.width, cut.height);
+      cctx.fillStyle = "#4ade4a";
+      cctx.font = '16px "Press Start 2P", monospace';
+      cctx.textAlign = "center";
+      cctx.fillText("LOADING" + ".".repeat(dots % 4), cut.width / 2, cut.height / 2);
+      dots++;
+    };
+    drawLoading();
+    const iv = setInterval(drawLoading, 350);
+    Promise.race([
+      Promise.all(imgPromises),
+      new Promise(r => setTimeout(r, 4000)),
+    ]).then(() => {
+      clearInterval(iv);
+      startCutscene();
+    });
+  })();
 
   /* ══════════ 全螢幕貪吃蛇 ══════════ */
   const CELL = 32;
