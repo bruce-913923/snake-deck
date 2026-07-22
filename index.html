@@ -176,8 +176,9 @@
   .board .steps { flex: 1; gap: 10px; }
   .board .stepbox { font-size: 20px; line-height: 1.9; max-width: 460px; padding: 12px 30px; }
   .board .steplink { font-size: 16px; }
-  .board .cols { align-self: center; gap: 34px; flex: 1; align-items: center; flex-wrap: nowrap; }
-  .board .col { max-width: 356px; min-width: 320px; padding: 26px 24px; }
+  /* 三欄卡片：grid 等寬、同列等高，讓每個說明框大小一致 */
+  .board .cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 34px; align-content: center; flex: 1; align-self: stretch; width: 100%; }
+  .board .col { max-width: none; min-width: 0; padding: 26px 24px; }
   .board .col h3 { font-size: 19px; margin-bottom: 16px; }
   .board .col p { font-size: 15.5px; line-height: 2.05; }
   .board .dbicon { width: 150px; margin: 12px auto 4px; display: block; filter: drop-shadow(0 0 14px rgba(74, 222, 74, 0.4)); }
@@ -382,7 +383,7 @@
           <div class="lbl">[ DATABASE 03 ]</div>
           <img class="dbicon" src="db3.png" alt="">
           <h3>### &gt; 研討會</h3>
-          <p><span class="k">[ 狀態：已連線 ]</span><br>公司定期舉辦研討會，<br>掌握趨勢並交流實務經驗</p>
+          <p><span class="k">[ 狀態：已連線 ]</span><br>提供外部技術研討會門票，<br>掌握趨勢並交流實務經驗</p>
         </div>
       </div>
     </div>
