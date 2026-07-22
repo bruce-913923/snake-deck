@@ -1071,7 +1071,7 @@
   }
 
   function tick() {
-    if (mode !== "game") return;
+    if (mode !== "game" || current >= slides.length - 1) return; // 最後一頁蛇休息
     dir = chooseDir();
     const head = nextCell(dir);
     snake.unshift(head);
@@ -1160,7 +1160,7 @@
   /* ── 繪圖 ── */
   function draw(now) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (mode !== "game") { requestAnimationFrame(draw); return; }
+    if (mode !== "game" || current >= slides.length - 1) { requestAnimationFrame(draw); return; }
 
     // 果實：紅色果子 + 綠色葉梗，帶呼吸縮放
     if (fruit) {
