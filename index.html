@@ -167,6 +167,14 @@
   .board .term { width: 100%; }
   .board .term .tbar { font-size: 13px; padding: 5px 12px; }
   .board .term .tbody { font-size: 17px; line-height: 1.75; padding: 12px 24px; }
+  /* 中英混排的內文改用一般字體（與中文同一套），避免像素英文字寬突兀；
+     ID:/TAG:/Step 等標籤保留像素字型維持終端機風格 */
+  .board .term .tbody, .board .col p, .board .iobox, .board .stepbox {
+    font-family: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+  }
+  .board .tbody .k, .board .col p .k, .board .iobox .lbl, .board .stepbox .k {
+    font-family: "Press Start 2P", "Courier New", monospace;
+  }
   .art { width: 340px; max-height: 520px; object-fit: contain; filter: drop-shadow(0 0 18px rgba(74, 222, 74, 0.35)); }
   /* 組員視窗右側的像素小人 */
   .board .term { position: relative; }
