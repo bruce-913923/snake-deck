@@ -194,6 +194,8 @@
   .board .col p { font-size: 15.5px; line-height: 2.05; }
   .board .dbicon { width: 150px; height: 155px; object-fit: contain; margin: 12px auto 4px; display: block; filter: drop-shadow(0 0 14px rgba(74, 222, 74, 0.4)); }
   .board .dbicon-sm { width: 124px; } /* 研討會圖示畫面較滿，縮小一點視覺上才等大 */
+  /* 像素字型行內的中文：整體上移，與英文像素字視覺垂直置中（由 JS 自動包 span） */
+  .cjkfix { position: relative; top: -0.1em; }
 
   /* ── 開場過場動畫：滿版全螢幕 ── */
   #cut {
@@ -1257,6 +1259,33 @@
     const tag = s.querySelector(".stage");
     if (tag && i > 0) tag.textContent = "STAGE " + i + " / " + (slides.length - 1);
   });
+
+  // 像素字型區塊裡的中文片段包進 .cjkfix：
+  // Press Start 2P 的字符幾乎全在基線上方，中文回退字體則略低於基線，
+  // 直接混排會讓中文偏下，包起來整體上移做視覺垂直置中
+  const CJK_RE = /([　-〿一-鿿＀-￯]+)/;
+  function wrapCJK(el) {
+    [...el.childNodes].forEach(n => {
+      if (n.nodeType === Node.TEXT_NODE && CJK_RE.test(n.textContent)) {
+        const frag = document.createDocumentFragment();
+        n.textContent.split(CJK_RE).forEach(part => {
+          if (!part) return;
+          if (CJK_RE.test(part)) {
+            const sp = document.createElement("span");
+            sp.className = "cjkfix";
+            sp.textContent = part;
+            frag.appendChild(sp);
+          } else {
+            frag.appendChild(document.createTextNode(part));
+          }
+        });
+        n.replaceWith(frag);
+      } else if (n.nodeType === Node.ELEMENT_NODE && !n.classList.contains("cjkfix")) {
+        wrapCJK(n);
+      }
+    });
+  }
+  document.querySelectorAll("h1, h2, h3, .cmd, .tsub, .lbl, .steplink, .k, .stage").forEach(wrapCJK);
 })();
 </script>
 
