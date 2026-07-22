@@ -659,7 +659,10 @@
   }
 
   // 寫實版 Nokia 3310 特寫
-  function drawNokia(now, glow) {
+  function drawNokia(now, glow, k = 0.8) {
+    // 以螢幕中心 (240,128) 為基準整體縮放，讓吸入動畫的目標點不受影響
+    cctx.save();
+    cctx.translate(240, 128); cctx.scale(k, k); cctx.translate(-240, -128);
     cctx.fillStyle = "rgba(0,0,0,0.35)";
     cctx.beginPath(); cctx.ellipse(240, 266, 82, 12, 0, 0, Math.PI * 2); cctx.fill();
     if (IMGS.phone) {
@@ -716,11 +719,32 @@
       // 導航鍵與按鍵
       cctx.fillStyle = "#c9d2dc";
       cctx.beginPath(); cctx.roundRect(212, 186, 56, 16, 9); cctx.fill();
-      cctx.fillStyle = "#bcc7d3";
+      cctx.fillStyle = "#5b6875";
+      cctx.font = "bold 7px Arial, sans-serif";
+      cctx.textAlign = "center";
+      cctx.fillText("Menu", 240, 196.5);
+      const KEYS = [
+        ["1", ""],    ["2", "abc"], ["3", "def"],
+        ["4", "ghi"], ["5", "jkl"], ["6", "mno"],
+        ["7", "pqrs"],["8", "tuv"], ["9", "wxyz"],
+        ["*", "+"],   ["0", "␣"],  ["#", "⇧"],
+      ];
       for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) {
-        cctx.beginPath(); cctx.roundRect(196 + c * 32, 210 + r * 14, 26, 10, 5); cctx.fill();
+        const kx = 196 + c * 32, ky = 210 + r * 14;
+        cctx.fillStyle = "#bcc7d3";
+        cctx.beginPath(); cctx.roundRect(kx, ky, 26, 10, 5); cctx.fill();
+        const [num, sub] = KEYS[r * 3 + c];
+        cctx.fillStyle = "#333f4b";
+        cctx.font = "bold 7px Arial, sans-serif";
+        cctx.fillText(num, kx + (sub ? 8 : 13), ky + 8);
+        if (sub) {
+          cctx.fillStyle = "#5b6875";
+          cctx.font = "4.5px Arial, sans-serif";
+          cctx.fillText(sub, kx + 18, ky + 7.5);
+        }
       }
     }
+    cctx.restore();
     if (glow) { // 螢幕向外的綠光暈
       const halo = cctx.createRadialGradient(240, 128, 10, 240, 128, 130);
       halo.addColorStop(0, "rgba(170,230,90,0.55)");
