@@ -150,6 +150,18 @@
   .board .mega { font-size: 110px; letter-spacing: 22px; }
   .board .tl { top: 44px; left: 64px; }
   .board .br { bottom: 44px; right: 64px; }
+  .board .tr { position: absolute; top: 44px; right: 64px; text-align: right; }
+  /* 結尾頁：五人在畫面中下方跳躍（比開場動畫大，象徵成長） */
+  .crew { position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%); display: flex; align-items: flex-end; gap: 26px; }
+  .crew img { height: 175px; animation: crew-jump 0.85s ease-in-out infinite; filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.55)); }
+  .crew img:nth-child(2) { animation-delay: 0.12s; }
+  .crew img:nth-child(3) { animation-delay: 0.24s; }
+  .crew img:nth-child(4) { animation-delay: 0.36s; }
+  .crew img:nth-child(5) { animation-delay: 0.48s; }
+  @keyframes crew-jump {
+    0%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-44px); }
+  }
   .duo { display: flex; align-items: center; gap: 56px; flex: 1; width: 100%; min-height: 0; }
   .stack { display: flex; flex-direction: column; gap: 14px; flex: 1; }
   .board .term { width: 100%; }
@@ -366,6 +378,12 @@
           <h3>### &gt; Hyread</h3>
           <p><span class="k">[ 狀態：已連線 ]</span><br>企業數位圖書館，<br>提供豐富知識庫作為決策後盾</p>
         </div>
+        <div class="col db">
+          <div class="lbl">[ DATABASE 03 ]</div>
+          <img class="dbicon" src="db3.png" alt="">
+          <h3>### &gt; 研討會</h3>
+          <p><span class="k">[ 狀態：已連線 ]</span><br>公司定期舉辦研討會，<br>掌握趨勢並交流實務經驗</p>
+        </div>
       </div>
     </div>
   </section>
@@ -375,7 +393,10 @@
     <div class="board center">
       <p class="cmd">&gt;_ REPORT COMPLETED.<br>&gt;_ AGILITY MODULE: ACTIVATED.</p>
       <h1 class="mega">感謝聆聽</h1>
-      <p class="tsub br">LOGGING OFF...<span class="blink">_</span></p>
+      <p class="tsub tr">LOGGING OFF...<span class="blink">_</span></p>
+      <div class="crew">
+        <img src="char1.png" alt=""><img src="char2.png" alt=""><img src="char3.png" alt=""><img src="char4.png" alt=""><img src="char5.png" alt="">
+      </div>
     </div>
   </section>
 </main>
