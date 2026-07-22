@@ -178,19 +178,6 @@
     width: 100%;
     height: 100%;
   }
-  #caption {
-    position: fixed;
-    left: 0;
-    right: 0;
-    top: 48px;
-    z-index: 1;
-    text-align: center;
-    font-size: 13px;
-    color: #fff;
-    line-height: 1.9;
-    text-shadow: 0 2px 6px #000, 0 0 14px #000;
-    pointer-events: none;
-  }
   .hidden { display: none !important; }
   /* 吃到果實的 +1 提示 */
   .pop {
@@ -213,7 +200,6 @@
 
 <canvas id="game"></canvas>
 <canvas id="cut"></canvas>
-<p id="caption"></p>
 <div id="flash"></div>
 
 <main>
@@ -423,7 +409,6 @@
   /* ══════════ 開場過場動畫（寫實背景 + 像素小人）══════════ */
   const cut = document.getElementById("cut");
   const cctx = cut.getContext("2d");
-  const captionEl = document.getElementById("caption");
   let topLogical = 0; // 滿版時邏輯座標系的畫面頂端（由視窗高度換算，可為負值）
   function resizeCut() {
     cut.width = innerWidth;
@@ -436,20 +421,15 @@
   let cutLoopRunning = false;
   let scene = 0;
   let sceneStart = performance.now();
-  const SCENE_MS = [3000, 3200, 3200, 3600, 3000];
-  const CAPTIONS = [
-    "五個冒險者盯著眼前的大樹",
-    "坐在樹下吃國泰花生，歲月靜好",
-    "咚！不知道是什麼東西掉下來，砸倒了一個人！",
-    "大家跑過去一看——是一支 NOKIA 手機！",
-    "手機突然發出綠光，把大家吸了進去！",
-  ];
+  // 四幕：圍著花生野餐 → 砸倒人 → 圍觀/揭曉 → 吸入
+  const SCENE_MS = [3200, 3400, 3800, 3000];
 
   // ── 想換成真實圖片：把圖檔放在同資料夾，用這些檔名就會自動套用 ──
   //    bg.png（整張場景底圖，會蓋掉程式畫的天空/地面/樹）
   //    tree.png（國泰樹）、phone.png（Nokia 手機）、char1.png ~ char5.png（五個角色）
+  //    peanut.png（草地上的國泰花生）
   const IMGS = {};
-  const imgPromises = ["bg", "tree", "phone", "char1", "char2", "char3", "char4", "char5"].map(n => new Promise(done => {
+  const imgPromises = ["bg", "tree", "phone", "peanut", "char1", "char2", "char3", "char4", "char5"].map(n => new Promise(done => {
     const im = new Image();
     im.onload = () => { IMGS[n] = im; done(); };
     im.onerror = done; // 缺圖就用程式畫的後備版
@@ -519,9 +499,34 @@
     }
   }
 
-  // 以「腳底中心」為基準畫角色
-  function drawCharAt(i, map, footX, footY, s) {
-    drawChar(i, map, footX - map[0].length * s / 2, footY - map.length * s, s);
+  // 以「腳底中心」為基準畫角色；rot = 以腳底為軸的旋轉角（倒地、旋轉飛行用）
+  function drawCharAt(i, map, footX, footY, s, rot = 0) {
+    if (!rot) {
+      drawChar(i, map, footX - map[0].length * s / 2, footY - map.length * s, s);
+      return;
+    }
+    cctx.save();
+    cctx.translate(footX, footY);
+    cctx.rotate(rot);
+    drawChar(i, map, -map[0].length * s / 2, -map.length * s, s);
+    cctx.restore();
+  }
+
+  // 角色 / 道具腳下的柔和陰影
+  function drawShadow(x, y, w) {
+    cctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+    cctx.beginPath();
+    cctx.ellipse(x, y, w, w * 0.22, 0, 0, Math.PI * 2);
+    cctx.fill();
+  }
+
+  // 頭昏的小星星（繞圈）
+  function drawDizzyStars(now, cx, cy) {
+    cctx.fillStyle = "#ffd94a";
+    for (let k = 0; k < 3; k++) {
+      const a = now / 240 + k * 2.1;
+      cctx.fillRect(cx + Math.cos(a) * 18, cy + Math.sin(a) * 7, 4, 4);
+    }
   }
 
   // 場景底圖：有 bg.png 就整張鋪滿（cover 裁切），否則用程式畫的天空+地面
@@ -617,6 +622,19 @@
     cctx.beginPath(); cctx.moveTo(247, 222); cctx.lineTo(277, 247); cctx.stroke();
     cctx.beginPath(); cctx.roundRect(178, 245, 124, 9, 4); cctx.fill();
     cctx.restore();
+  }
+
+  // 圈中間的國泰花生（包裝圖，缺圖時退回程式畫的花生堆）
+  function drawPeanutPack() {
+    const cx = 240, cy = 273;
+    drawShadow(cx, cy + 1, 30);
+    if (IMGS.peanut) {
+      const w = 58, h = w * IMGS.peanut.height / IMGS.peanut.width;
+      cctx.drawImage(IMGS.peanut, cx - w / 2, cy - h + 6, w, h);
+    } else {
+      drawPeanuts(cx - 14, cy - 6);
+      drawPeanuts(cx + 4, cy - 2);
+    }
   }
 
   function drawPeanuts(x, y) {
@@ -726,86 +744,109 @@
     const ss = cut.width / 480;
     topLogical = 300 - cut.height / ss;
     cctx.setTransform(ss, 0, 0, ss, 0, cut.height - 300 * ss);
-    if (scene === 2 && t > 600 && t < 1000) { // 砸到瞬間的震動
-      cctx.translate(Math.random() * 4 - 2, Math.random() * 4 - 2);
+    if (scene === 1 && t > 600 && t < 950) { // 砸到瞬間的震動（漸弱）
+      const sh = ((950 - t) / 350) * 3;
+      cctx.translate((Math.random() * 2 - 1) * sh, (Math.random() * 2 - 1) * sh);
     }
     drawBackdrop(now);
 
+    const V = PICNIC[2]; // 被砸的中間角色
+
     if (scene === 0) {
-      // 第一幕：野餐隊形站在草地上看樹
+      // 第一幕：五人圍著國泰花生野餐
       drawTree(now);
+      drawPeanutPack();
       PICNIC.forEach((p, i) => {
-        const bob = Math.round(Math.sin(now / 300 + i * 1.3)) * 2;
-        drawCharAt(i, STAND, p.x, p.y + bob, p.s);
+        const munch = Math.sin(now / 150 + i * 1.7) > 0.3 ? 2 : 0;
+        drawShadow(p.x, p.y, 2.6 * p.s);
+        drawCharAt(i, STAND, p.x, p.y + munch, p.s);
       });
     } else if (scene === 1) {
-      // 第二幕：圍圈坐下吃花生
+      // 第二幕：神秘物體從樹上砸倒中間的人（他從此倒地不起）
       drawTree(now);
-      drawPeanuts(226, 262);
-      drawPeanuts(252, 270); // 圈中間的花生堆
-      PICNIC.forEach((p, i) => {
-        const munch = Math.sin(now / 130 + i) > 0 ? 2 : 0;
-        drawCharAt(i, STAND, p.x, p.y + munch, p.s); // 人留在原地、大小不變
-      });
-    } else if (scene === 2) {
-      // 第三幕：牛頓時刻——神秘物體砸倒中間的人
-      drawTree(now);
-      const victim = PICNIC[2];
+      drawPeanutPack();
       const p = Math.min(1, t / 600);
-      if (p < 1) drawFallingObject(246, 40 + p * p * 200, t / 90);
-      else drawFallingObject(272, victim.y - 4, 1.35); // 彈落在旁邊的草地上
+      if (p < 1) {
+        // 掉落中：旋轉 + 地面陰影逐漸變大
+        drawShadow(248, V.y - 2, 4 + 8 * p);
+        drawFallingObject(246, 40 + p * p * 196, t / 80);
+      } else {
+        // 落地彈開一小下，滑到旁邊躺平
+        const bt = Math.min(1, (t - 600) / 350);
+        const bounce = Math.sin(bt * Math.PI) * 10;
+        const bx = 246 + 26 * bt;
+        drawShadow(bx, V.y - 2, 9 - 3 * Math.sin(bt * Math.PI));
+        drawFallingObject(bx, V.y - 8 - bounce, 1.35 + bt * 0.5);
+      }
       if (t > 600 && t < 950) { // 落地衝擊圈
         const q = (t - 600) / 350;
-        cctx.strokeStyle = `rgba(255,255,255,${1 - q})`;
+        cctx.strokeStyle = `rgba(255,255,255,${(1 - q) * 0.9})`;
         cctx.lineWidth = 3;
-        cctx.beginPath(); cctx.arc(252, victim.y - 8, 8 + q * 30, 0, Math.PI * 2); cctx.stroke();
+        cctx.beginPath(); cctx.arc(250, V.y - 6, 8 + q * 30, 0, Math.PI * 2); cctx.stroke();
       }
-      // 被砸倒的中間角色
-      const fall = Math.min(1, Math.max(0, (t - 600) / 400));
-      cctx.save();
-      cctx.translate(victim.x, victim.y);
-      cctx.rotate(fall * Math.PI / 2);
-      drawChar(2, STAND, -8 * victim.s / 2, -10 * victim.s, victim.s);
-      cctx.restore();
-      if (fall >= 1) { // 頭昏小星星
-        cctx.fillStyle = "#ffd94a";
-        for (let k = 0; k < 3; k++) {
-          const a = now / 250 + k * 2.1;
-          cctx.fillRect(258 + Math.cos(a) * 20, victim.y - 24 + Math.sin(a) * 8, 4, 4);
+      if (t > 600 && t < 1200) { // 揚起的塵土
+        const u = (t - 600) / 600;
+        cctx.fillStyle = `rgba(205, 185, 140, ${1 - u})`;
+        for (let k = 0; k < 8; k++) {
+          const a = Math.PI * (0.15 + 0.7 * k / 7);
+          const d = (14 + (k % 3) * 8) * u;
+          cctx.fillRect(246 + Math.cos(a) * d * (k % 2 ? 1 : -1), V.y - 4 - Math.sin(a) * d + 16 * u * u, 2.5, 2.5);
         }
       }
+      // 中間角色被砸倒（緩衝倒地，之後一直躺著）
+      const fall = Math.min(1, Math.max(0, (t - 600) / 400));
+      const fe = 1 - (1 - fall) * (1 - fall);
+      drawShadow(V.x + 10 * fe, V.y, 2.6 * V.s + 8 * fe);
+      drawCharAt(2, STAND, V.x, V.y, V.s, fe * Math.PI / 2);
+      if (fall >= 1) drawDizzyStars(now, V.x + 20, V.y - 20);
       // 其他人嚇一跳：先「!」再「?」
       [0, 1, 3, 4].forEach(i => {
         const p2 = PICNIC[i];
-        const jump = t > 600 ? -Math.abs(Math.sin((t - 600) / 160 + i)) * 6 : 0;
+        const jump = t > 650 ? -Math.abs(Math.sin((t - 650) / 170 + i)) * 6 : 0;
+        drawShadow(p2.x, p2.y, 2.6 * p2.s + jump * 0.5);
         drawCharAt(i, STAND, p2.x, p2.y + jump, p2.s);
-        if (t > 650 && Math.floor(t / 240) % 2 === 0) {
-          const wonder = t > 1800;
-          mark(wonder ? "?" : "!", p2.x, p2.y - 10 * p2.s - 8 + jump, wonder ? "#ffffff" : "#ff5252");
+        if (t > 700 && Math.floor(t / 260) % 2 === 0) {
+          const wonder = t > 2000;
+          mark(wonder ? "?" : "!", p2.x, p2.y - 10 * p2.s - 10 + jump, wonder ? "#ffffff" : "#ff5252");
         }
       });
-    } else if (scene === 3) {
-      // 第四幕：大家跑過去圍觀 → 特寫揭曉是 Nokia
+    } else if (scene === 2) {
+      // 第三幕：大家跑過去圍觀（倒地的人繼續躺著）→ 鏡頭切到特寫
       if (t < 1700) {
         drawTree(now);
-        drawFallingObject(272, PICNIC[2].y - 4, 1.35);
+        drawPeanutPack();
+        drawShadow(272, V.y - 2, 9);
+        drawFallingObject(272, V.y - 8, 1.85);
+        // 倒地的人
+        drawShadow(V.x + 10, V.y, 2.6 * V.s + 8);
+        drawCharAt(2, STAND, V.x, V.y, V.s, Math.PI / 2);
+        drawDizzyStars(now, V.x + 20, V.y - 20);
+        // 其他人小跑步圍過去（帶一點左右擺動）
         const p = Math.min(1, t / 1300);
         const e = p * (2 - p);
-        const targets = [[206, 254], [236, 262], [304, 258], [326, 266]];
+        const targets = [[204, 252], [230, 268], [304, 256], [326, 270]];
         [0, 1, 3, 4].forEach((ci, k) => {
           const st = PICNIC[ci];
           const x = st.x + (targets[k][0] - st.x) * e;
           const y = st.y + (targets[k][1] - st.y) * e;
-          const run = p < 1 ? Math.abs(Math.sin(now / 90 + k)) * 5 : 0;
-          drawCharAt(ci, STAND, x, y - run, st.s);
+          const run = p < 1 ? Math.abs(Math.sin(now / 85 + k * 2)) * 5 : 0;
+          const tilt = p < 1 ? Math.sin(now / 85 + k * 2) * 0.07 : 0;
+          drawShadow(x, y, 2.6 * st.s);
+          drawCharAt(ci, STAND, x, y - run, st.s, tilt);
         });
-        drawCharAt(2, STAND, PICNIC[2].x, PICNIC[2].y, PICNIC[2].s); // 被砸的人爬起來
-        if (Math.floor(t / 400) % 2) mark("?", 290, 200, "#ffffff");
+        if (Math.floor(t / 420) % 2) mark("?", 286, 198, "#ffffff");
       } else {
+        // 特寫揭曉：鏡頭緩慢推近
+        const z = 1 + Math.min(1, (t - 1700) / 2100) * 0.07;
+        cctx.save();
+        cctx.translate(240, 160);
+        cctx.scale(z, z);
+        cctx.translate(-240, -160);
         drawNokia(now, false);
+        cctx.restore();
       }
     } else {
-      // 第五幕：綠光把大家吸進螢幕
+      // 第四幕：綠光把大家吸進螢幕（倒地的那位以躺姿旋轉飛入）
       drawNokia(now, true);
       for (let k = 0; k < 3; k++) {
         const r = (t * 0.13 + k * 44) % 132;
@@ -813,36 +854,45 @@
         cctx.lineWidth = 3;
         cctx.beginPath(); cctx.arc(240, 128, 20 + r, 0, Math.PI * 2); cctx.stroke();
       }
-      const starts = [[206, 254], [236, 262], [304, 258], [326, 266], [234, 258]];
+      const starts = [[204, 252], [230, 268], [240, 252], [304, 256], [326, 270]];
       starts.forEach(([sx, sy], i) => {
         const p = Math.min(1, Math.max(0, (t - i * 200) / 900));
         if (p >= 1) return;
         const e = p * p;
         const x = sx + (240 - sx) * e + Math.sin(now / 70 + i) * 8 * (1 - p);
         const y = sy + (135 - sy) * e;
-        drawCharAt(i, STAND, x, y, 4 * (1 - 0.85 * p));
+        const spin = (i === 2 ? Math.PI / 2 : 0) + p * Math.PI * 3;
+        drawCharAt(i, STAND, x, y, 4 * (1 - 0.85 * p), spin);
       });
       if (t > 2100) { // 收尾綠閃
         cctx.fillStyle = `rgba(170,215,90,${Math.min(1, (t - 2100) / 500)})`;
         cctx.fillRect(0, topLogical, 480, 300 - topLogical);
       }
     }
+
+    // 每幕開頭淡入、自動換幕前淡出，讓切換不生硬
+    const remain = SCENE_MS[scene] - t;
+    let fade = 0;
+    if (t < 350) fade = 1 - t / 350;
+    if (scene < 3 && remain < 300) fade = Math.min(1, Math.max(fade, (300 - remain) / 300));
+    if (fade > 0) {
+      cctx.fillStyle = `rgba(2, 8, 4, ${fade})`;
+      cctx.fillRect(0, topLogical, 480, 300 - topLogical);
+    }
     cctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
   function nextScene() {
     if (cutsceneDone) return;
-    if (scene >= 4) return endCutscene();
+    if (scene >= 3) return endCutscene();
     scene++;
     sceneStart = performance.now();
-    captionEl.textContent = CAPTIONS[scene];
   }
 
   function prevScene() {
     if (cutsceneDone || scene === 0) return;
     scene--;
     sceneStart = performance.now();
-    captionEl.textContent = CAPTIONS[scene];
   }
 
   // 動畫播完：綠光一閃，直接進入貪吃蛇模式
@@ -854,7 +904,6 @@
     setTimeout(() => {
       mode = "game";
       cut.classList.add("hidden");
-      captionEl.classList.add("hidden");
       showSlide(1);
       flash.classList.remove("on");
       entering = false;
@@ -873,9 +922,7 @@
     cutsceneDone = false;
     scene = 0;
     sceneStart = performance.now();
-    captionEl.textContent = CAPTIONS[0];
     cut.classList.remove("hidden");
-    captionEl.classList.remove("hidden");
     if (!cutLoopRunning) {
       cutLoopRunning = true;
       requestAnimationFrame(cutLoop);
