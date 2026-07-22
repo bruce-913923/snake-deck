@@ -162,12 +162,15 @@
     0%, 100% { transform: translateY(0); }
     40% { transform: translateY(-44px); }
   }
-  .duo { display: flex; align-items: center; gap: 56px; flex: 1; width: 100%; min-height: 0; }
+  .duo { display: flex; align-items: center; gap: 40px; flex: 1; width: 100%; min-height: 0; }
   .stack { display: flex; flex-direction: column; gap: 14px; flex: 1; }
   .board .term { width: 100%; }
   .board .term .tbar { font-size: 13px; padding: 5px 12px; }
   .board .term .tbody { font-size: 17px; line-height: 1.75; padding: 12px 24px; }
-  .art { width: 400px; max-height: 520px; object-fit: contain; filter: drop-shadow(0 0 18px rgba(74, 222, 74, 0.35)); }
+  .art { width: 340px; max-height: 520px; object-fit: contain; filter: drop-shadow(0 0 18px rgba(74, 222, 74, 0.35)); }
+  /* 組員視窗右側的像素小人 */
+  .board .term { position: relative; }
+  .board .term .face { position: absolute; right: 22px; top: calc(50% + 12px); transform: translateY(-50%); height: 96px; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5)); }
   .board .flow { gap: 16px; margin-top: 10px; width: 100%; }
   .board .iobox { font-size: 21px; line-height: 2; padding: 16px 40px; }
   .board .lbl { font-size: 16px; letter-spacing: 3px; margin-bottom: 6px; }
@@ -240,17 +243,17 @@
             <span class="k">ID:</span> 廖睿辰<br>
             <span class="k">TAG:</span> [ 數據暨人工智慧發展部 客戶智能科 ]<br>
             <span class="k">TASK:</span> AI agent 建置 / 訓練機器學習模型
-          </div></div>
+          </div><img class="face" src="char3.png" alt=""></div>
           <div class="term"><div class="tbar">─ □ ×</div><div class="tbody">
             <span class="k">ID:</span> 賴約翰<br>
             <span class="k">TAG:</span> [ 行銷資訊部 台中軟體開發科 ]<br>
             <span class="k">TASK:</span> 開發專案派件與維護
-          </div></div>
+          </div><img class="face" src="char4.png" alt=""></div>
           <div class="term"><div class="tbar">─ □ ×</div><div class="tbody">
             <span class="k">ID:</span> 陳志鴻<br>
             <span class="k">TAG:</span> [ 資訊策略發展部 資訊科技發展科 ]<br>
             <span class="k">TASK:</span> 運用 AI 進行開發並把 AI 開發流程推廣給其他部門
-          </div></div>
+          </div><img class="face" src="char1.png" alt=""></div>
         </div>
         <img class="art" src="art1.png" alt="">
       </div>
@@ -268,12 +271,12 @@
             <span class="k">ID:</span> 呂喬盈<br>
             <span class="k">TAG:</span> [ 專案投資部 ]<br>
             <span class="k">TASK:</span> 國內公共/基礎建設評估 /<br>私募基金管理 / 未上市櫃企業投後管理
-          </div></div>
+          </div><img class="face" src="char5.png" alt=""></div>
           <div class="term"><div class="tbar">─ □ ×</div><div class="tbody">
             <span class="k">ID:</span> 陳怡靜<br>
             <span class="k">TAG:</span> [ 理賠部 多元理賠科 ]<br>
             <span class="k">TASK:</span> 分析病歷 / 案件處理與高頻人際溝通
-          </div></div>
+          </div><img class="face" src="char2.png" alt=""></div>
         </div>
         <img class="art" src="art2.png" alt="">
       </div>
