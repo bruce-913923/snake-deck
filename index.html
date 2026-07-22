@@ -151,7 +151,9 @@
   .board .tl { top: 44px; left: 64px; }
   .board .br { bottom: 44px; right: 64px; }
   .board .tr { position: absolute; top: 44px; right: 64px; text-align: right; }
-  .mega.up { margin-bottom: 170px; } /* 結尾頁標題上移，把下方空間留給人物 */
+  /* 結尾頁標題：上移留空間給人物；先隱藏，點擊後淡入浮現 */
+  .mega.up { margin-bottom: 170px; opacity: 0; transform: translateY(16px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .mega.up.show { opacity: 1; transform: translateY(0); }
   /* 結尾頁：五人站在畫面中下方（比開場動畫大，象徵成長） */
   .crew { position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%); display: flex; align-items: flex-end; gap: 26px; }
   .crewman { position: relative; display: inline-block; filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.55)); }
@@ -434,6 +436,17 @@
     slides[current].classList.remove("active", "entering");
     current = i;
     slides[current].classList.add("active", "entering");
+    // 進入結尾頁時先只出現人物，標題等點擊再浮現
+    const endMega = slides[current].querySelector(".mega.up");
+    if (endMega) endMega.classList.remove("show");
+  }
+
+  // 結尾頁點擊：浮現「感謝聆聽」；已浮現則不再動作。回傳是否有處理
+  function revealEnding() {
+    if (current !== slides.length - 1) return false;
+    const endMega = slides[current].querySelector(".mega.up");
+    if (endMega && !endMega.classList.contains("show")) endMega.classList.add("show");
+    return true;
   }
 
   // 簡報板等比縮放：以 1280×720 設計稿為基準鋪滿視窗
@@ -1147,7 +1160,7 @@
 
   function goNext() {
     if (mode === "intro") nextScene();
-    else placeFruitRandom();
+    else if (!revealEnding()) placeFruitRandom();
   }
 
   function goPrev() {
@@ -1166,6 +1179,7 @@
   document.addEventListener("click", e => {
     if (waitingStart) return beginShow();
     if (mode === "intro") return nextScene();
+    if (revealEnding()) return;
     placeFruit(Math.floor(e.clientX / CELL), Math.floor(e.clientY / CELL));
   });
   // 右鍵＝上一頁（動畫中回上一幕；簡報中退回上一頁）
