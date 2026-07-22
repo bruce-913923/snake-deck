@@ -466,13 +466,13 @@
     { h: "#a03636", c: "#8e5bb8" },
     { h: "#3b6fd4", c: "#d98a3d" },
   ];
-  // 野餐隊形（腳底中心座標＋縮放）：圍成一圈，前排靠近鏡頭比較大
+  // 野餐隊形（腳底中心座標＋縮放）：緊緊圍著中央的花生包，前排靠近鏡頭比較大
   const PICNIC = [
-    { x: 128, y: 246, s: 4 },    // 左後
-    { x: 352, y: 248, s: 4 },    // 右後
-    { x: 240, y: 252, s: 4.2 },  // 中間靠樹（被砸的那位）
-    { x: 160, y: 270, s: 5 },    // 左前
-    { x: 322, y: 272, s: 5 },    // 右前
+    { x: 185, y: 250, s: 4 },    // 左後
+    { x: 295, y: 250, s: 4 },    // 右後
+    { x: 240, y: 246, s: 4.2 },  // 花生正後方（被砸的那位）
+    { x: 192, y: 289, s: 4.6 },  // 左前
+    { x: 288, y: 291, s: 4.6 },  // 右前
   ];
   const charPal = ch => ({ h: ch.h, c: ch.c, p: "#22314b", s: "#181818" });
 
@@ -753,18 +753,40 @@
     const V = PICNIC[2]; // 被砸的中間角色
 
     if (scene === 0) {
-      // 第一幕：五人圍著國泰花生野餐
+      // 第一幕：五人圍著國泰花生野餐（後排 → 花生包 → 前排，做出遮擋層次）
       drawTree(now);
-      drawPeanutPack();
-      PICNIC.forEach((p, i) => {
+      const eat = i => {
+        const p = PICNIC[i];
         const munch = Math.sin(now / 150 + i * 1.7) > 0.3 ? 2 : 0;
         drawShadow(p.x, p.y, 2.6 * p.s);
         drawCharAt(i, STAND, p.x, p.y + munch, p.s);
-      });
+      };
+      [0, 1, 2].forEach(eat);
+      drawPeanutPack();
+      [3, 4].forEach(eat);
     } else if (scene === 1) {
       // 第二幕：神秘物體從樹上砸倒中間的人（他從此倒地不起）
       drawTree(now);
+      // 其他人嚇一跳：先「!」再「?」（後排先畫）
+      const scared = i => {
+        const p2 = PICNIC[i];
+        const jump = t > 650 ? -Math.abs(Math.sin((t - 650) / 170 + i)) * 6 : 0;
+        drawShadow(p2.x, p2.y, 2.6 * p2.s + jump * 0.5);
+        drawCharAt(i, STAND, p2.x, p2.y + jump, p2.s);
+        if (t > 700 && Math.floor(t / 260) % 2 === 0) {
+          const wonder = t > 2000;
+          mark(wonder ? "?" : "!", p2.x, p2.y - 10 * p2.s - 10 + jump, wonder ? "#ffffff" : "#ff5252");
+        }
+      };
+      [0, 1].forEach(scared);
+      // 中間角色被砸倒（緩衝倒地，之後一直躺著）
+      const fall = Math.min(1, Math.max(0, (t - 600) / 400));
+      const fe = 1 - (1 - fall) * (1 - fall);
+      drawShadow(V.x + 10 * fe, V.y, 2.6 * V.s + 8 * fe);
+      drawCharAt(2, STAND, V.x, V.y, V.s, fe * Math.PI / 2);
       drawPeanutPack();
+      [3, 4].forEach(scared);
+      // 神秘物體
       const p = Math.min(1, t / 600);
       if (p < 1) {
         // 掉落中：旋轉 + 地面陰影逐漸變大
@@ -793,38 +815,22 @@
           cctx.fillRect(246 + Math.cos(a) * d * (k % 2 ? 1 : -1), V.y - 4 - Math.sin(a) * d + 16 * u * u, 2.5, 2.5);
         }
       }
-      // 中間角色被砸倒（緩衝倒地，之後一直躺著）
-      const fall = Math.min(1, Math.max(0, (t - 600) / 400));
-      const fe = 1 - (1 - fall) * (1 - fall);
-      drawShadow(V.x + 10 * fe, V.y, 2.6 * V.s + 8 * fe);
-      drawCharAt(2, STAND, V.x, V.y, V.s, fe * Math.PI / 2);
       if (fall >= 1) drawDizzyStars(now, V.x + 20, V.y - 20);
-      // 其他人嚇一跳：先「!」再「?」
-      [0, 1, 3, 4].forEach(i => {
-        const p2 = PICNIC[i];
-        const jump = t > 650 ? -Math.abs(Math.sin((t - 650) / 170 + i)) * 6 : 0;
-        drawShadow(p2.x, p2.y, 2.6 * p2.s + jump * 0.5);
-        drawCharAt(i, STAND, p2.x, p2.y + jump, p2.s);
-        if (t > 700 && Math.floor(t / 260) % 2 === 0) {
-          const wonder = t > 2000;
-          mark(wonder ? "?" : "!", p2.x, p2.y - 10 * p2.s - 10 + jump, wonder ? "#ffffff" : "#ff5252");
-        }
-      });
     } else if (scene === 2) {
       // 第三幕：大家跑過去圍觀（倒地的人繼續躺著）→ 鏡頭切到特寫
       if (t < 1700) {
         drawTree(now);
+        // 倒地的人（躺在花生包後方）
+        drawShadow(V.x + 10, V.y, 2.6 * V.s + 8);
+        drawCharAt(2, STAND, V.x, V.y, V.s, Math.PI / 2);
         drawPeanutPack();
         drawShadow(272, V.y - 2, 9);
         drawFallingObject(272, V.y - 8, 1.85);
-        // 倒地的人
-        drawShadow(V.x + 10, V.y, 2.6 * V.s + 8);
-        drawCharAt(2, STAND, V.x, V.y, V.s, Math.PI / 2);
         drawDizzyStars(now, V.x + 20, V.y - 20);
         // 其他人小跑步圍過去（帶一點左右擺動）
         const p = Math.min(1, t / 1300);
         const e = p * (2 - p);
-        const targets = [[204, 252], [230, 268], [304, 256], [326, 270]];
+        const targets = [[196, 254], [225, 274], [286, 260], [312, 276]];
         [0, 1, 3, 4].forEach((ci, k) => {
           const st = PICNIC[ci];
           const x = st.x + (targets[k][0] - st.x) * e;
@@ -854,7 +860,7 @@
         cctx.lineWidth = 3;
         cctx.beginPath(); cctx.arc(240, 128, 20 + r, 0, Math.PI * 2); cctx.stroke();
       }
-      const starts = [[204, 252], [230, 268], [240, 252], [304, 256], [326, 270]];
+      const starts = [[196, 254], [225, 274], [240, 246], [286, 260], [312, 276]];
       starts.forEach(([sx, sy], i) => {
         const p = Math.min(1, Math.max(0, (t - i * 200) / 900));
         if (p >= 1) return;
