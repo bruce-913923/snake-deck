@@ -177,6 +177,13 @@
   .board .tbody .k, .board .col p .k, .board .iobox .lbl, .board .stepbox .k {
     font-family: "Press Start 2P", "Courier New", monospace;
   }
+  /* 冒號標籤對齊：標籤欄等寬、內容欄切齊，折行時懸掛縮排 */
+  .tbody.kv { display: grid; grid-template-columns: max-content 1fr; column-gap: 12px; align-items: baseline; }
+  .tbody.kv .hdr { grid-column: 1 / -1; }
+  .kv3 { display: grid; grid-template-columns: max-content max-content 1fr; column-gap: 2px; row-gap: 8px; align-items: baseline; }
+  .kv3 .kl { color: var(--snake); text-align: justify; text-align-last: justify; }
+  .kv3 .kc { color: var(--snake); }
+  .kv3 .kv3v { margin-left: 6px; }
   .art { width: 340px; max-height: 520px; object-fit: contain; filter: drop-shadow(0 0 18px rgba(74, 222, 74, 0.35)); }
   /* 組員視窗右側的像素小人 */
   .board .term { position: relative; }
@@ -252,20 +259,20 @@
       <p class="cmd">&gt;_ [ 系統的大腦 ]</p>
       <div class="duo">
         <div class="stack">
-          <div class="term"><div class="tbar">─ □ ×</div><div class="tbody">
-            <span class="k">ID:</span> 廖睿辰<br>
-            <span class="k">TAG:</span> [ 數據暨人工智慧發展部 客戶智能科 ]<br>
-            <span class="k">TASK:</span> AI agent 建置 / 訓練機器學習模型
+          <div class="term"><div class="tbar">─ □ ×</div><div class="tbody kv">
+            <span class="k">ID:</span><span>廖睿辰</span>
+            <span class="k">TAG:</span><span>[ 數據暨人工智慧發展部 客戶智能科 ]</span>
+            <span class="k">TASK:</span><span>AI agent 建置 / 訓練機器學習模型</span>
           </div><img class="face" src="char3.png" alt=""></div>
-          <div class="term"><div class="tbar">─ □ ×</div><div class="tbody">
-            <span class="k">ID:</span> 賴約翰<br>
-            <span class="k">TAG:</span> [ 行銷資訊部 台中軟體開發科 ]<br>
-            <span class="k">TASK:</span> 開發專案派件與維護
+          <div class="term"><div class="tbar">─ □ ×</div><div class="tbody kv">
+            <span class="k">ID:</span><span>賴約翰</span>
+            <span class="k">TAG:</span><span>[ 行銷資訊部 台中軟體開發科 ]</span>
+            <span class="k">TASK:</span><span>開發專案派件與維護</span>
           </div><img class="face" src="char4.png" alt=""></div>
-          <div class="term"><div class="tbar">─ □ ×</div><div class="tbody">
-            <span class="k">ID:</span> 陳志鴻<br>
-            <span class="k">TAG:</span> [ 資訊策略發展部 資訊科技發展科 ]<br>
-            <span class="k">TASK:</span> 運用 AI 進行開發並把 AI 開發流程推廣給其他部門
+          <div class="term"><div class="tbar">─ □ ×</div><div class="tbody kv">
+            <span class="k">ID:</span><span>陳志鴻</span>
+            <span class="k">TAG:</span><span>[ 資訊策略發展部 資訊科技發展科 ]</span>
+            <span class="k">TASK:</span><span>運用 AI 進行開發並把 AI 開發流程推廣給其他部門</span>
           </div><img class="face" src="char1.png" alt=""></div>
         </div>
         <img class="art" src="art1.png" alt="">
@@ -280,15 +287,15 @@
       <p class="cmd">&gt;_ [ 執行與實踐的身體 ]</p>
       <div class="duo">
         <div class="stack">
-          <div class="term"><div class="tbar">─ □ ×</div><div class="tbody">
-            <span class="k">ID:</span> 呂喬盈<br>
-            <span class="k">TAG:</span> [ 專案投資部 ]<br>
-            <span class="k">TASK:</span> 國內公共/基礎建設評估 / 私募基金管理 / 未上市櫃企業投後管理
+          <div class="term"><div class="tbar">─ □ ×</div><div class="tbody kv">
+            <span class="k">ID:</span><span>呂喬盈</span>
+            <span class="k">TAG:</span><span>[ 專案投資部 ]</span>
+            <span class="k">TASK:</span><span>國內公共/基礎建設評估 / 私募基金管理 / 未上市櫃企業投後管理</span>
           </div><img class="face" src="char5.png" alt=""></div>
-          <div class="term"><div class="tbar">─ □ ×</div><div class="tbody">
-            <span class="k">ID:</span> 陳怡靜<br>
-            <span class="k">TAG:</span> [ 理賠部 多元理賠科 ]<br>
-            <span class="k">TASK:</span> 分析病歷 / 案件處理與高頻人際溝通
+          <div class="term"><div class="tbar">─ □ ×</div><div class="tbody kv">
+            <span class="k">ID:</span><span>陳怡靜</span>
+            <span class="k">TAG:</span><span>[ 理賠部 多元理賠科 ]</span>
+            <span class="k">TASK:</span><span>分析病歷 / 案件處理與高頻人際溝通</span>
           </div><img class="face" src="char2.png" alt=""></div>
         </div>
         <img class="art" src="art2.png" alt="">
@@ -318,17 +325,17 @@
       <p class="cmd">&gt;_ EXECUTE: 實戰任務測試</p>
       <div class="duo">
         <div class="stack">
-          <div class="term"><div class="tbar">─ □ ×</div><div class="tbody">
-            <span class="k">[ 任務 A：機器人製作 ]</span><br>
-            <span class="k">ACTION:</span> 先寫好一版「簡單移動與發射功能」<br>
-            <span class="k">RESULT:</span> 快速實測攻擊能力，大幅加快進度（MVP 測試）
+          <div class="term"><div class="tbar">─ □ ×</div><div class="tbody kv">
+            <span class="k hdr">[ 任務 A：機器人製作 ]</span>
+            <span class="k">ACTION:</span><span>先寫好一版「簡單移動與發射功能」</span>
+            <span class="k">RESULT:</span><span>快速實測攻擊能力，大幅加快進度（MVP 測試）</span>
           </div></div>
-          <div class="term"><div class="tbar">─ □ ×</div><div class="tbody">
-            <span class="k">[ 任務 B：收銀機任務 ]</span><br>
-            <span class="k">CONTEXT:</span> 遊戲規則與資訊非常不足<br>
-            <span class="k">ROUND_1:</span> 選擇「不行動」，優先紀錄數字分布狀態<br>
-            <span class="k">ROUND_2:</span> 根據分布數據，精準分配每人的目標數字<br>
-            <span class="k">RESULT:</span> 短時間內得到好成績，展現敏捷力
+          <div class="term"><div class="tbar">─ □ ×</div><div class="tbody kv">
+            <span class="k hdr">[ 任務 B：收銀機任務 ]</span>
+            <span class="k">CONTEXT:</span><span>遊戲規則與資訊非常不足</span>
+            <span class="k">ROUND_1:</span><span>選擇「不行動」，優先紀錄數字分布狀態</span>
+            <span class="k">ROUND_2:</span><span>根據分布數據，精準分配每人的目標數字</span>
+            <span class="k">RESULT:</span><span>短時間內得到好成績，展現敏捷力</span>
           </div></div>
         </div>
         <div class="photo"><img src="photo1.png" alt="實戰任務照片"></div>
@@ -363,15 +370,27 @@
     <div class="cols green">
       <div class="col">
         <h3>[ PATCH_1: 專案開發 ]</h3>
-        <p><span class="k">情境：</span>收到 BU 需求時<br><span class="k">敏捷行動：</span>快速製作 prototype 供測試<br><span class="k">效益：</span>有效獲取反饋，對齊產品面貌，大幅加速專案進程</p>
+        <p class="kv3">
+          <span class="kl">情境</span><span class="kc">：</span><span class="kv3v">收到 BU 需求時</span>
+          <span class="kl">敏捷行動</span><span class="kc">：</span><span class="kv3v">快速製作 prototype 供測試</span>
+          <span class="kl">效益</span><span class="kc">：</span><span class="kv3v">有效獲取反饋，對齊產品面貌，大幅加速專案進程</span>
+        </p>
       </div>
       <div class="col">
         <h3>[ PATCH_2: 部門協作 ]</h3>
-        <p><span class="k">情境：</span>跨部門合作發現理解不同時<br><span class="k">敏捷行動：</span>及時主動提問，理解雙方需求<br><span class="k">效益：</span>動態修改合作流程，確保專案順利推進</p>
+        <p class="kv3">
+          <span class="kl">情境</span><span class="kc">：</span><span class="kv3v">跨部門合作發現理解不同時</span>
+          <span class="kl">敏捷行動</span><span class="kc">：</span><span class="kv3v">及時主動提問，理解雙方需求</span>
+          <span class="kl">效益</span><span class="kc">：</span><span class="kv3v">動態修改合作流程，確保專案順利推進</span>
+        </p>
       </div>
       <div class="col">
         <h3>[ PATCH_3: 技術導入 ]</h3>
-        <p><span class="k">情境：</span>公司導入新 AI 產品時<br><span class="k">敏捷行動：</span>主動多測試 DC<br><span class="k">效益：</span>將新工具無縫融入現有流程，提升工作效率與品質</p>
+        <p class="kv3">
+          <span class="kl">情境</span><span class="kc">：</span><span class="kv3v">公司導入新 AI 產品時</span>
+          <span class="kl">敏捷行動</span><span class="kc">：</span><span class="kv3v">主動多測試 DC</span>
+          <span class="kl">效益</span><span class="kc">：</span><span class="kv3v">將新工具無縫融入現有流程，提升工作效率與品質</span>
+        </p>
       </div>
     </div>
     </div>
