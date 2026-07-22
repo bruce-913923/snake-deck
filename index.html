@@ -151,6 +151,7 @@
   .board .tl { top: 44px; left: 64px; }
   .board .br { bottom: 44px; right: 64px; }
   .board .tr { position: absolute; top: 44px; right: 64px; text-align: right; }
+  .mega.up { margin-bottom: 170px; } /* 結尾頁標題上移，把下方空間留給人物 */
   /* 結尾頁：五人站在畫面中下方（比開場動畫大，象徵成長） */
   .crew { position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%); display: flex; align-items: flex-end; gap: 26px; }
   .crewman { position: relative; display: inline-block; filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.55)); }
@@ -297,7 +298,7 @@
   <section class="slide">
     <div class="board">
       <h2>2. 四天受訓過程中，小組怎麼樣展現這項職能</h2>
-      <p class="cmd">&gt;_ QUERY: 敏捷力是什麼?</p>
+      <p class="cmd">&gt;_ QUERY: 敏捷力是什麼</p>
       <div class="flow">
         <div class="iobox"><div class="lbl">[ 輸入條件 INPUT ]</div>⚠ 情境不明　│　⚠ 需求快速變動　│　⚠ 資訊不完整</div>
         <p class="arrow">↓ (EXECUTE AGILITY_ALGORITHM)</p>
@@ -405,9 +406,7 @@
   <!-- ══ P9：結尾 ══ -->
   <section class="slide">
     <div class="board center">
-      <p class="cmd">&gt;_ REPORT COMPLETED.<br>&gt;_ AGILITY MODULE: ACTIVATED.</p>
-      <h1 class="mega">感謝聆聽</h1>
-      <p class="tsub tr">LOGGING OFF...<span class="blink">_</span></p>
+      <h1 class="mega up">感謝聆聽</h1>
       <div class="crew">
         <span class="crewman"><img src="char1.png" alt=""><img class="ctree" src="tree.png" alt=""></span>
         <span class="crewman"><img src="char2.png" alt=""><img class="ctree" src="tree.png" alt=""></span>
